@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supervised Learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ===========================================
+   CSS CUSTOM PROPERTIES (THEME): Notebook Tabs
+   Change these to re-colour the whole deck
+   =========================================== */
+:root {
+    --stage-bg: #2d2d2d;
+    --slide-bg: #2d2d2d;
+    --page: #f8f6f1;
+    --ink: #1a1a1a;
+    --ink-2: #3b3832;
+    --muted: #6b665e;
+    --rule: rgba(120, 150, 190, .18);
+    --tab-1: #98d4bb;  /* mint: concepts */
+    --tab-2: #c7b8ea;  /* lavender: examples */
+    --tab-3: #f4b8c5;  /* pink: quiz */
+    --tab-4: #a8d8ea;  /* sky: recap */
+    --tab-5: #ffe6a7;  /* cream: highlight */
+    --good: #2f8f5b;
+    --bad: #c2453d;
+    --font-display: 'Bodoni Moda', serif;
+    --font-body: 'DM Sans', sans-serif;
+    --ease: cubic-bezier(.16, 1, .3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE: viewport-base.css (full)
+   =========================================== */
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--stage-bg, #000); }
+.deck-viewport { position: fixed; inset: 0; overflow: hidden; background: var(--stage-bg, #000); }
+.deck-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: var(--slide-bg, #fff); }
+.slide { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; display: block; visibility: hidden; opacity: 0; pointer-events: none; background: var(--slide-bg, #fff); }
+.slide.active, .slide.visible { visibility: visible; opacity: 1; pointer-events: auto; z-index: 1; }
+img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+.deck-controls { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 1000; }
+@media print {
+    html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+    .deck-viewport { position: static; overflow: visible; background: #fff; }
+    .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+    .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .deck-controls { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+}
+
+/* ===========================================
+   NOTEBOOK PAGE: paper, ruled lines, margin, holes
+   =========================================== */
+.page { position: absolute; left: 90px; top: 60px; width: 1620px; height: 960px; background: var(--page); border-radius: 10px; box-shadow: 0 30px 60px rgba(0,0,0,.35); overflow: hidden; }
+.page::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, transparent 0 63px, var(--rule) 63px 64px); pointer-events: none; }
+.margin { position: absolute; left: 150px; top: 0; bottom: 0; width: 2px; background: rgba(220, 90, 90, .35); }
+.hole { position: absolute; left: 52px; width: 32px; height: 32px; border-radius: 50%; background: #2d2d2d; box-shadow: inset 0 3px 6px rgba(0,0,0,.5); }
+.hole.h1 { top: 170px; } .hole.h2 { top: 464px; } .hole.h3 { top: 758px; }
+
+/* ===========================================
+   SECTION TABS on the right edge of the page
+   The tab matching data-tab on the slide is pulled out
+   =========================================== */
+.tabs { position: absolute; left: 1706px; top: 120px; z-index: 5; display: flex; flex-direction: column; gap: 12px; }
+.tab { width: 64px; height: 150px; border-radius: 0 12px 12px 0; writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center; font: 500 18px var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); opacity: .55; transition: width .4s var(--ease), opacity .4s; }
+.tab.t1 { background: var(--tab-1); } .tab.t2 { background: var(--tab-2); } .tab.t3 { background: var(--tab-3); } .tab.t4 { background: var(--tab-4); }
+.tab.on { width: 96px; opacity: 1; }
+
+/* ===========================================
+   TYPOGRAPHY & SHARED LAYOUT (1920×1080 units)
+   =========================================== */
+.content { position: absolute; left: 210px; top: 70px; right: 90px; bottom: 60px; }
+.kicker { font: 500 22px var(--font-body); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); display: flex; gap: 24px; align-items: center; }
+.kicker .pill { background: var(--tab-1); color: var(--ink); padding: 4px 14px; border-radius: 999px; letter-spacing: .1em; }
+h2 { font: 400 76px/1.05 var(--font-display); color: var(--ink); margin: 14px 0 0; }
+h2 em { font-style: italic; }
+.watch { position: absolute; right: 0; top: 0; font: 700 22px var(--font-body); color: var(--ink); text-decoration: none; border: 2.5px solid var(--ink); border-radius: 999px; padding: 10px 22px; background: #fff; transition: background .2s; }
+.watch:hover { background: var(--tab-5); }
+.cols { position: absolute; top: 190px; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 560px 1fr; gap: 60px; }
+.notes { display: flex; flex-direction: column; gap: 22px; }
+.note h3 { font: 700 20px var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.note p { font: 400 26px/1.45 var(--font-body); color: var(--ink-2); }
+.note.warn { border-left: 6px solid var(--tab-3); padding-left: 18px; }
+.note.key { background: var(--tab-5); border-radius: 12px; padding: 16px 20px; }
+.note.key p { font-weight: 500; color: var(--ink); }
+
+/* Widget card */
+.widget { position: relative; background: #fff; border: 2.5px solid var(--ink); border-radius: 18px; padding: 28px 32px; box-shadow: 8px 8px 0 rgba(26,26,26,.08); height: 640px; display: flex; flex-direction: column; }
+.widget .label { font: 700 18px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; display: flex; justify-content: space-between; }
+.caption { margin-top: auto; font: 500 25px/1.4 var(--font-body); color: var(--ink); background: var(--page); border-radius: 10px; padding: 14px 18px; min-height: 92px; }
+button.btn { font: 700 22px var(--font-body); color: var(--ink); background: #fff; border: 2.5px solid var(--ink); border-radius: 12px; padding: 12px 24px; cursor: pointer; transition: transform .15s, background .2s; }
+button.btn:hover { transform: translateY(-2px); }
+button.btn.on { background: var(--tab-1); }
+button.btn:disabled { opacity: .35; cursor: default; transform: none; }
+
+/* ===========================================
+   ANIMATIONS: .reveal children fade up on slide entry
+   =========================================== */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+.slide.visible .reveal { opacity: 1; transform: none; }
+.slide.visible .reveal.d1 { transition-delay: .08s; } .slide.visible .reveal.d2 { transition-delay: .18s; }
+.slide.visible .reveal.d3 { transition-delay: .3s; } .slide.visible .reveal.d4 { transition-delay: .42s; }
+
+/* ===========================================
+   SLIDE 1: TITLE
+   =========================================== */
+.title h1 { font: 400 150px/1 var(--font-display); color: var(--ink); margin: 40px 0 16px; }
+.title h1 em { font-style: italic; }
+.title .sub { font: 400 36px/1.45 var(--font-body); color: var(--ink-2); max-width: 1150px; }
+.title .map { margin-top: 56px; display: flex; align-items: center; gap: 28px; font: 700 44px var(--font-body); }
+.chip { padding: 14px 32px; border: 3px solid var(--ink); border-radius: 14px; background: #fff; }
+.title .arrow { font: 400 60px var(--font-display); }
+.title .meta { position: absolute; left: 0; bottom: 20px; font: 400 24px/1.6 var(--font-body); color: var(--muted); }
+.title .meta a { color: var(--ink); font-weight: 700; }
+
+/* ===========================================
+   WIDGET 1: labelled vs unlabelled table
+   =========================================== */
+table.mail { width: 100%; border-collapse: collapse; font: 400 24px var(--font-body); }
+table.mail th { text-align: left; font: 700 18px var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 10px 12px; border-bottom: 2.5px solid var(--ink); }
+table.mail td { padding: 12px; border-bottom: 1px solid #e3ded3; }
+table.mail .y { transition: opacity .35s, filter .35s; width: 200px; }
+table.mail.hide .y span { opacity: 0; }
+table.mail.hide .y::after { content: "?"; font: 700 24px var(--font-body); color: var(--muted); }
+.tag { display: inline-block; padding: 3px 14px; border-radius: 999px; font: 700 20px var(--font-body); }
+.tag.spam { background: var(--tab-3); } .tag.ok { background: var(--tab-1); }
+
+/* ===========================================
+   WIDGET 2: input → output matcher
+   =========================================== */
+.matcher { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 0 150px; flex: 1; }
+.matcher .col { display: flex; flex-direction: column; gap: 8px; }
+.mcard { font: 500 21px var(--font-body); padding: 8px 14px; border: 2px solid #d8d2c4; border-radius: 12px; background: #fff; text-align: left; cursor: pointer; color: var(--ink); transition: background .2s, border-color .2s; }
+.mcard.in:hover { border-color: var(--ink); }
+.mcard.sel { border-color: var(--ink); background: var(--tab-5); }
+.mcard.out { cursor: default; }
+.mcard.out.sel { background: var(--tab-1); }
+.matcher svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.matcher path { fill: none; stroke: var(--ink); stroke-width: 3; stroke-dasharray: 6 6; }
+
+/* ===========================================
+   WIDGET 3: train → predict stepper
+   =========================================== */
+.flow { flex: 1; position: relative; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.flow .pairs { width: 210px; display: flex; flex-direction: column; gap: 10px; }
+.flow .outbox { width: 140px; display: flex; flex-direction: column; }
+.pairchip { font: 500 19px var(--font-body); background: var(--page); border: 2px solid #d8d2c4; border-radius: 10px; padding: 8px 14px; transition: opacity .4s, transform .5s var(--ease); }
+.pairchip.used { opacity: .3; transform: translateX(30px); }
+.pairchip.new { background: var(--tab-5); border-color: var(--ink); }
+.model { width: 170px; height: 190px; flex-shrink: 0; border: 3px solid var(--ink); border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 400 34px var(--font-display); background: #fff; transition: background .4s; text-align: center; }
+.model small { font: 500 20px var(--font-body); color: var(--muted); margin-top: 8px; }
+.model.trained { background: var(--tab-1); }
+.flow .arrowr { font: 400 40px var(--font-display); color: var(--muted); }
+.stepper { display: flex; gap: 14px; align-items: center; margin: 12px 0; }
+.dots { display: flex; gap: 8px; margin-left: auto; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; background: #d8d2c4; }
+.dots i.on { background: var(--ink); }
+
+/* ===========================================
+   WIDGETS 4 & 5: house price plot
+   =========================================== */
+.plot { width: 100%; height: 400px; }
+.plot .ax { stroke: var(--ink); stroke-width: 2.5; }
+.plot .grid { stroke: #ece7dc; stroke-width: 1; }
+.plot text { font: 400 18px var(--font-body); fill: var(--muted); }
+.plot .pt { fill: var(--ink); }
+.plot .fit { fill: none; stroke: #4a7fb8; stroke-width: 4; transition: opacity .4s; }
+.plot .fit.curve { stroke: #c2453d; }
+.plot .marker { stroke: #c2453d; stroke-width: 2.5; stroke-dasharray: 6 5; }
+.plot .hit { fill: #fff; stroke: var(--ink); stroke-width: 3; }
+.ctrl { display: flex; align-items: center; gap: 20px; font: 500 22px var(--font-body); margin: 10px 0; }
+.ctrl input[type=range] { flex: 1; accent-color: var(--ink); height: 28px; }
+.readout { font: 700 30px var(--font-body); min-width: 210px; text-align: right; }
+
+/* ===========================================
+   WIDGET 6: number line + classification teaser
+   =========================================== */
+.numline { position: relative; height: 170px; margin-top: 20px; cursor: crosshair; }
+.numline .bar { position: absolute; left: 0; right: 0; top: 80px; height: 6px; background: var(--ink); border-radius: 3px; }
+.numline .tick { position: absolute; top: 72px; width: 2px; height: 22px; background: var(--ink); }
+.numline .tl { position: absolute; top: 104px; font: 400 18px var(--font-body); color: var(--muted); transform: translateX(-50%); }
+.numline .pin { position: absolute; top: 10px; transform: translateX(-50%); font: 700 26px var(--font-body); background: var(--tab-5); border: 2px solid var(--ink); border-radius: 10px; padding: 4px 12px; white-space: nowrap; display: none; }
+.numline .pin::after { content: ""; position: absolute; left: 50%; bottom: -14px; width: 2px; height: 14px; background: var(--ink); }
+.teaser { margin-top: 26px; border: 2.5px dashed #b9b2a3; border-radius: 14px; padding: 18px 22px; display: flex; align-items: center; gap: 24px; color: var(--muted); font: 500 22px var(--font-body); }
+.bucket { border: 2px solid #b9b2a3; border-radius: 10px; padding: 8px 18px; }
+
+/* ===========================================
+   QUIZ
+   =========================================== */
+.quiz { position: absolute; top: 190px; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 1fr 380px; gap: 50px; }
+.qcard { background: #fff; border: 2.5px solid var(--ink); border-radius: 18px; padding: 40px 46px; box-shadow: 8px 8px 0 rgba(26,26,26,.08); height: 640px; display: flex; flex-direction: column; }
+.qnum { font: 700 20px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.qtext { font: 400 46px/1.2 var(--font-display); color: var(--ink); margin: 16px 0 28px; }
+.opts { display: flex; flex-direction: column; gap: 14px; }
+.opt { font: 500 26px var(--font-body); text-align: left; padding: 16px 22px; border: 2.5px solid #d8d2c4; border-radius: 14px; background: #fff; cursor: pointer; color: var(--ink); transition: border-color .2s, background .2s; }
+.opt:hover { border-color: var(--ink); }
+.opt.right { background: #dff1e6; border-color: var(--good); }
+.opt.wrong { background: #f8e0de; border-color: var(--bad); }
+.explain { margin-top: auto; font: 500 24px/1.4 var(--font-body); min-height: 70px; color: var(--ink-2); }
+.qside { display: flex; flex-direction: column; gap: 16px; }
+.qside .score { font: 400 64px var(--font-display); }
+.qlist { display: flex; flex-direction: column; gap: 8px; }
+.qlist button { font: 500 20px var(--font-body); text-align: left; padding: 10px 16px; border-radius: 10px; border: 2px solid #d8d2c4; background: #fff; cursor: pointer; color: var(--ink); }
+.qlist button.cur { border-color: var(--ink); background: var(--tab-5); }
+.qlist button.ok::after { content: "  ✓"; color: var(--good); font-weight: 700; }
+.qlist button.no::after { content: "  ✗"; color: var(--bad); font-weight: 700; }
+
+/* ===========================================
+   RECAP
+   =========================================== */
+.recap { position: absolute; top: 190px; left: 0; right: 0; display: grid; grid-template-columns: 1fr 520px; gap: 60px; }
+.takeaways { list-style: none; counter-reset: k; display: flex; flex-direction: column; gap: 18px; }
+.takeaways li { counter-increment: k; font: 400 30px/1.4 var(--font-body); color: var(--ink); padding-left: 76px; position: relative; }
+.takeaways li::before { content: counter(k, decimal-leading-zero); position: absolute; left: 0; top: -4px; font: 400 44px var(--font-display); color: var(--muted); }
+.sources { background: #fff; border: 2.5px solid var(--ink); border-radius: 18px; padding: 28px 30px; }
+.sources h3 { font: 700 18px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+.sources a { display: block; font: 500 22px/1.4 var(--font-body); color: var(--ink); margin-bottom: 14px; }
+.sources a small { display: block; font: 400 18px var(--font-body); color: var(--muted); }
+.next { margin-top: 30px; font: 400 italic 34px var(--font-display); color: var(--ink-2); }
+
+/* ===========================================
+   DECK CHROME (outside the stage) & INLINE EDITING
+   =========================================== */
+.deck-controls { display: flex; gap: 10px; align-items: center; background: rgba(20,20,20,.75); border-radius: 999px; padding: 6px 10px; font: 500 14px var(--font-body); color: #eee; }
+.deck-controls button { background: none; border: 0; color: #eee; font: 700 18px var(--font-body); cursor: pointer; padding: 4px 10px; }
+.edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+.edit-toggle { position: fixed; top: 16px; left: 16px; z-index: 10001; font-size: 22px; background: #fff; border: 2px solid #1a1a1a; border-radius: 10px; padding: 6px 10px; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+body.editing [data-edit] { outline: 2px dashed rgba(194,69,61,.5); outline-offset: 4px; }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- ======================= SLIDE 1: TITLE ======================= -->
+<section class="slide title" data-tab="0">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1" data-edit>Machine Learning Specialization · Course 1 · Week 1 · Lesson 2</div>
+      <h1 class="reveal d2" data-edit>Supervised <em>Learning</em></h1>
+      <p class="sub reveal d3" data-edit>Learning input → output mappings from examples that include the right answers, and predicting a number with regression.</p>
+      <div class="map reveal d4"><span class="chip">x</span><span class="arrow">→</span><span class="chip">y</span></div>
+      <div class="meta reveal d4">Andrew Ng · DeepLearningAI · ~7 min<br>
+        <a href="https://www.youtube.com/watch?v=sca5rQ9x1cA" target="_blank" rel="noopener">▶ Watch the lecture on YouTube</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 2: CONCEPT 1 ======================= -->
+<section class="slide" data-tab="1">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1"><span class="pill">Concept 1</span> What it is</div>
+      <h2 class="reveal d2" data-edit>Learn <em>X → Y</em> from the right answers</h2>
+      <a class="watch reveal d1" href="https://www.youtube.com/watch?v=sca5rQ9x1cA&t=17s" target="_blank" rel="noopener">▶ Watch 00:17</a>
+      <div class="cols">
+        <div class="notes reveal d3">
+          <div class="note key"><h3>Core idea</h3><p data-edit>The algorithm sees pairs of input x and the correct label y. Eventually it takes x alone and gives a reasonably accurate guess of y.</p></div>
+          <div class="note"><h3>Why it matters</h3><p data-edit>Ng estimates ~99% of the economic value created by machine learning today comes from this one type.</p></div>
+          <div class="note warn"><h3>Common confusion</h3><p data-edit>"Supervised" doesn't mean a person watches training. It means the data contains the right answers: the labels.</p></div>
+        </div>
+        <div class="widget reveal d4">
+          <div class="label"><span>Try it: hide the labels</span><span>x = email · y = label</span></div>
+          <div style="margin-bottom:14px"><button class="btn on" id="w1toggle">Labels shown</button></div>
+          <table class="mail" id="w1table">
+            <tr><th>x: email subject</th><th class="y">y: label</th></tr>
+            <tr><td>"You WON a free cruise!!!"</td><td class="y"><span class="tag spam">spam</span></td></tr>
+            <tr><td>"Lecture 3 slides attached"</td><td class="y"><span class="tag ok">not spam</span></td></tr>
+            <tr><td>"Claim your prize now"</td><td class="y"><span class="tag spam">spam</span></td></tr>
+            <tr><td>"Lunch on Thursday?"</td><td class="y"><span class="tag ok">not spam</span></td></tr>
+            <tr><td>"Cheap meds, no prescription"</td><td class="y"><span class="tag spam">spam</span></td></tr>
+            <tr><td>"Your exam timetable"</td><td class="y"><span class="tag ok">not spam</span></td></tr>
+          </table>
+          <div class="caption" id="w1cap">Labelled pairs: the algorithm can learn the mapping X → Y from these.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 3: CONCEPT 2 ======================= -->
+<section class="slide" data-tab="1">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1"><span class="pill">Concept 2</span> Applications</div>
+      <h2 class="reveal d2" data-edit>Same pattern, <em>different X and Y</em></h2>
+      <a class="watch reveal d1" href="https://www.youtube.com/watch?v=sca5rQ9x1cA&t=63s" target="_blank" rel="noopener">▶ Watch 01:03</a>
+      <div class="cols">
+        <div class="notes reveal d3">
+          <div class="note key"><h3>Core idea</h3><p data-edit>Very different products are the same supervised learning recipe: choose an input X, choose an output Y, learn the mapping.</p></div>
+          <div class="note"><h3>Lecturer's examples</h3><p data-edit>Spam filtering, speech recognition, machine translation, online ads ("probably the most lucrative"), self-driving cars, and visual inspection in manufacturing (Ng's work at Landing AI).</p></div>
+          <div class="note warn"><h3>Spot the pattern</h3><p data-edit>For any ML product, ask: what is x, and what is y?</p></div>
+        </div>
+        <div class="widget reveal d4">
+          <div class="label"><span>Try it: click an input</span><span>X → Y</span></div>
+          <div class="matcher" id="w2">
+            <svg id="w2svg"><path id="w2path" d=""/></svg>
+            <div class="col" id="w2in">
+              <button class="mcard in" data-i="0">📧 An email</button>
+              <button class="mcard in" data-i="1">🎙 An audio clip</button>
+              <button class="mcard in" data-i="2">🇬🇧 An English sentence</button>
+              <button class="mcard in" data-i="3">📢 An ad + info about you</button>
+              <button class="mcard in" data-i="4">📷 Camera image + radar</button>
+              <button class="mcard in" data-i="5">📱 Photo of a new phone</button>
+            </div>
+            <div class="col" id="w2out">
+              <div class="mcard out" data-o="3">Will you click? (0/1)</div>
+              <div class="mcard out" data-o="0">Spam? (0/1)</div>
+              <div class="mcard out" data-o="5">Scratch / dent / defect?</div>
+              <div class="mcard out" data-o="1">Text transcript</div>
+              <div class="mcard out" data-o="4">Positions of other cars</div>
+              <div class="mcard out" data-o="2">Spanish / Hindi / … text</div>
+            </div>
+          </div>
+          <div class="caption" id="w2cap">Pick any input on the left to see its output and the application it powers.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 4: CONCEPT 3 ======================= -->
+<section class="slide" data-tab="1">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1"><span class="pill">Concept 3</span> How it works</div>
+      <h2 class="reveal d2" data-edit>Train on pairs, <em>then predict</em></h2>
+      <a class="watch reveal d1" href="https://www.youtube.com/watch?v=sca5rQ9x1cA&t=195s" target="_blank" rel="noopener">▶ Watch 03:15</a>
+      <div class="cols">
+        <div class="notes reveal d3">
+          <div class="note key"><h3>Core idea</h3><p data-edit>First train the model on examples of inputs x with their labels y. Then give it a brand-new x it has never seen and it produces its best guess of y.</p></div>
+          <div class="note"><h3>In Ng's words</h3><p data-edit>"Take a brand new input X, something it's never seen before, and try to produce the appropriate corresponding output y."</p></div>
+          <div class="note warn"><h3>Notice</h3><p data-edit>Labels are needed for <b>training</b>, not for <b>prediction</b>.</p></div>
+        </div>
+        <div class="widget reveal d4">
+          <div class="label"><span>Try it: step through</span><span id="w3step">Step 1 of 4</span></div>
+          <div class="stepper">
+            <button class="btn" id="w3prev">← Prev</button>
+            <button class="btn" id="w3next">Next →</button>
+            <div class="dots" id="w3dots"><i class="on"></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="flow">
+            <div class="pairs" id="w3pairs">
+              <div class="pairchip">x: 1,000 ft² · y: $210k</div>
+              <div class="pairchip">x: 1,500 ft² · y: $300k</div>
+              <div class="pairchip">x: 2,000 ft² · y: $360k</div>
+              <div class="pairchip new" id="w3new" style="visibility:hidden">x: 750 ft² · y: ?</div>
+            </div>
+            <div class="arrowr">→</div>
+            <div class="model" id="w3model">model<small id="w3ms">untrained</small></div>
+            <div class="arrowr">→</div>
+            <div class="outbox"><div class="pairchip" id="w3out" style="visibility:hidden">ŷ ≈ $150k</div></div>
+          </div>
+          <div class="caption" id="w3cap">We start with a training set: inputs x, each with its right answer y.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 5: CONCEPT 4 ======================= -->
+<section class="slide" data-tab="2">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1"><span class="pill" style="background:var(--tab-2)">Concept 4</span> Worked example</div>
+      <h2 class="reveal d2" data-edit>Predicting <em>house prices</em></h2>
+      <a class="watch reveal d1" href="https://www.youtube.com/watch?v=sca5rQ9x1cA&t=224s" target="_blank" rel="noopener">▶ Watch 03:44</a>
+      <div class="cols">
+        <div class="notes reveal d3">
+          <div class="note key"><h3>Core idea</h3><p data-edit>Plot house size (x) against price (y), fit a model to the data, then read a prediction off the model for any new house.</p></div>
+          <div class="note"><h3>Lecturer's example</h3><p data-edit>A friend asks about their 750 ft² house. Reading off a straight line fitted to the data, it could sell for about $150,000.</p></div>
+          <div class="note"><h3>Why it's supervised</h3><p data-edit>Every house on the plot comes with its right answer, the actual price y. The algorithm's job is to produce more right answers.</p></div>
+        </div>
+        <div class="widget reveal d4">
+          <div class="label"><span>Try it: move your friend's house</span><span>price in $1000s</span></div>
+          <svg class="plot" id="plot4" viewBox="0 0 760 400"></svg>
+          <div class="ctrl">size <input type="range" id="w4size" min="500" max="2500" step="10" value="750"><span class="readout" id="w4out">$150k</span></div>
+          <div class="caption" id="w4cap">750 ft² → the straight line predicts about $150k.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 6: CONCEPT 5 ======================= -->
+<section class="slide" data-tab="2">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1"><span class="pill" style="background:var(--tab-2)">Concept 5</span> Model choice</div>
+      <h2 class="reveal d2" data-edit>Line or curve? <em>The answer changes</em></h2>
+      <a class="watch reveal d1" href="https://www.youtube.com/watch?v=sca5rQ9x1cA&t=279s" target="_blank" rel="noopener">▶ Watch 04:39</a>
+      <div class="cols">
+        <div class="notes reveal d3">
+          <div class="note key"><h3>Core idea</h3><p data-edit>A straight line isn't the only option. A slightly more complex curve may fit better, and it gives a different prediction from the same data.</p></div>
+          <div class="note"><h3>Lecturer's example</h3><p data-edit>With a curve, the friend's 750 ft² house comes out closer to $200,000 instead of $150,000.</p></div>
+          <div class="note warn"><h3>Don't cherry-pick</h3><p data-edit>It wouldn't be right to pick whichever model gives your friend the best price. Later in the course you learn to choose the model systematically.</p></div>
+        </div>
+        <div class="widget reveal d4">
+          <div class="label"><span>Try it: switch the model</span><span>house fixed at 750 ft²</span></div>
+          <div style="display:flex;gap:12px;margin-bottom:6px">
+            <button class="btn on" id="w5line">Straight line</button>
+            <button class="btn" id="w5curve">Curve</button>
+          </div>
+          <svg class="plot" id="plot5" viewBox="0 0 760 400"></svg>
+          <div class="ctrl"><span>prediction for 750 ft²</span><span class="readout" id="w5out" style="margin-left:auto">$150k</span></div>
+          <div class="caption" id="w5cap">Same data, straight line: about $150k.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 7: CONCEPT 6 ======================= -->
+<section class="slide" data-tab="1">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1"><span class="pill">Concept 6</span> Terminology</div>
+      <h2 class="reveal d2" data-edit>Regression: <em>predict a number</em></h2>
+      <a class="watch reveal d1" href="https://www.youtube.com/watch?v=sca5rQ9x1cA&t=366s" target="_blank" rel="noopener">▶ Watch 06:06</a>
+      <div class="cols">
+        <div class="notes reveal d3">
+          <div class="note key"><h3>Core idea</h3><p data-edit>House-price prediction is a type of supervised learning called <b>regression</b>: predicting a number from infinitely many possible numbers.</p></div>
+          <div class="note"><h3>Lecturer's example</h3><p data-edit>The price could be $150,000, $70,000, $183,000, "or any other number in between".</p></div>
+          <div class="note"><h3>Coming next</h3><p data-edit>The second major type is <b>classification</b>, covered in the next video.</p></div>
+        </div>
+        <div class="widget reveal d4">
+          <div class="label"><span>Try it: click anywhere on the line</span><span>possible prices</span></div>
+          <div class="numline" id="w6"><div class="bar"></div><div class="pin" id="w6pin"></div></div>
+          <div class="teaser"><b style="color:var(--ink)">Next lesson: classification</b><span class="bucket">spam</span><span class="bucket">not spam</span><span>a small set of categories</span></div>
+          <div class="caption" id="w6cap">Any value on the line is a valid regression output. There are infinitely many possibilities.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 8: QUIZ ======================= -->
+<section class="slide" data-tab="3">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1"><span class="pill" style="background:var(--tab-3)">Quiz</span> Check your understanding</div>
+      <h2 class="reveal d2">Test the <em>intuition</em></h2>
+      <div class="quiz reveal d3">
+        <div class="qcard">
+          <div class="qnum" id="qnum">Question 1 of 5</div>
+          <div class="qtext" id="qtext"></div>
+          <div class="opts" id="qopts"></div>
+          <div class="explain" id="qexp"></div>
+        </div>
+        <div class="qside">
+          <div class="qnum">Score</div>
+          <div class="score" id="qscore">0 / 5</div>
+          <div class="qlist" id="qlist"></div>
+          <button class="btn" id="qnext">Next question →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 9: RECAP ======================= -->
+<section class="slide" data-tab="4">
+  <div class="page"><div class="margin"></div><div class="hole h1"></div><div class="hole h2"></div><div class="hole h3"></div>
+    <div class="content">
+      <div class="kicker reveal d1"><span class="pill" style="background:var(--tab-4)">Recap</span> Takeaways</div>
+      <h2 class="reveal d2">What to <em>remember</em></h2>
+      <div class="recap">
+        <div class="reveal d3">
+          <ol class="takeaways">
+            <li data-edit>Supervised learning learns X → Y from examples with the right answers (labels).</li>
+            <li data-edit>It powers spam filters, speech recognition, translation, ads, self-driving and visual inspection.</li>
+            <li data-edit>Train on (x, y) pairs, then predict y for a brand-new x.</li>
+            <li data-edit>The model you fit (line vs curve) changes the prediction, so choose it systematically.</li>
+            <li data-edit>Regression predicts a number from infinitely many possibilities.</li>
+          </ol>
+          <p class="next" data-edit>Next: classification, predicting a category.</p>
+        </div>
+        <div class="sources reveal d4">
+          <h3>Sources</h3>
+          <a href="https://www.youtube.com/watch?v=sca5rQ9x1cA" target="_blank" rel="noopener">▶ The lecture: Andrew Ng, DeepLearningAI<small>All concepts, examples and timestamps</small></a>
+          <a href="https://en.wikipedia.org/wiki/Supervised_learning" target="_blank" rel="noopener">Wikipedia: Supervised learning<small>Formal definition: pairs (xᵢ, yᵢ), learned g: X → Y</small></a>
+          <a href="https://www.classcentral.com/report/?p=82310" target="_blank" rel="noopener">Class Central: Course 1 review<small>Week 1 structure and house-price dataset</small></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section tabs live on the stage so they scale with it -->
+<nav class="tabs" id="tabs" aria-label="Sections">
+  <div class="tab t1">Concepts</div><div class="tab t2">Example</div><div class="tab t3">Quiz</div><div class="tab t4">Recap</div>
+</nav>
+</main>
+</div>
+
+<div class="deck-controls" aria-label="Deck navigation">
+  <button id="prevBtn" aria-label="Previous slide">‹</button><span id="pageNum">1 / 9</span><button id="nextBtn" aria-label="Next slide">›</button>
+</div>
+<div class="edit-hotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">✏️</button>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Keyboard, wheel, swipe and button navigation.
+   Keys are ignored while a widget control has focus,
+   so sliders and buttons never hijack navigation.
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = [...document.querySelectorAll('.slide')];
+        this.stage = document.getElementById('deckStage');
+        this.tabs = [...document.querySelectorAll('#tabs .tab')];
+        this.current = 0;
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupWheelNav();
+        this.setupTouchNav();
+        document.getElementById('prevBtn').onclick = () => this.go(this.current - 1);
+        document.getElementById('nextBtn').onclick = () => this.go(this.current + 1);
+        this.go(0);
+    }
+    setupStageScale() {
+        const scale = () => {
+            const f = Math.min(innerWidth / 1920, innerHeight / 1080);
+            this.stage.style.transform = `translate(${(innerWidth - 1920 * f) / 2}px, ${(innerHeight - 1080 * f) / 2}px) scale(${f})`;
+        };
+        scale(); addEventListener('resize', scale);
+    }
+    isWidgetTarget(t) {
+        // Controls that use arrow keys themselves (sliders, text fields, edited text)
+        return t && t.closest && t.closest('input, select, textarea, [contenteditable="true"]');
+    }
+    setupKeyboardNav() {
+        document.addEventListener('keydown', e => {
+            if (this.isWidgetTarget(e.target)) return;   // let widgets keep their keys
+            // A focused button/link uses Space/Enter to activate; arrows still navigate
+            if (e.target.closest && e.target.closest('button, a') && (e.key === ' ' || e.key === 'Enter')) return;
+            if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); this.go(this.current + 1); }
+            if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); this.go(this.current - 1); }
+            if (e.key === 'Home') this.go(0);
+            if (e.key === 'End') this.go(this.slides.length - 1);
+        });
+        // Return focus to the deck after clicking a widget, so arrows work again
+        document.addEventListener('pointerup', e => {
+            const t = e.target.closest('button.btn, button.mcard, button.opt, .qlist button');
+            if (t) setTimeout(() => t.blur(), 0);
+        });
+    }
+    setupWheelNav() {
+        let lock = false;
+        addEventListener('wheel', e => {
+            if (lock || Math.abs(e.deltaY) < 30 || this.isWidgetTarget(e.target)) return;
+            lock = true; setTimeout(() => lock = false, 700);
+            this.go(this.current + (e.deltaY > 0 ? 1 : -1));
+        }, { passive: true });
+    }
+    setupTouchNav() {
+        let x0 = null;
+        addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+        addEventListener('touchend', e => {
+            if (x0 === null) return;
+            const dx = e.changedTouches[0].clientX - x0; x0 = null;
+            if (Math.abs(dx) > 60) this.go(this.current + (dx < 0 ? 1 : -1));
+        });
+    }
+    go(i) {
+        this.current = Math.max(0, Math.min(i, this.slides.length - 1));
+        this.slides.forEach((s, k) => { s.classList.toggle('active', k === this.current); s.classList.toggle('visible', k === this.current); });
+        const tab = +this.slides[this.current].dataset.tab;
+        this.tabs.forEach((t, k) => t.classList.toggle('on', k + 1 === tab));
+        document.getElementById('pageNum').textContent = `${this.current + 1} / ${this.slides.length}`;
+    }
+}
+const deck = new SlidePresentation();
+
+/* ===========================================
+   WIDGET 1: toggle the label column
+   =========================================== */
+(() => {
+    const btn = document.getElementById('w1toggle'), tbl = document.getElementById('w1table'), cap = document.getElementById('w1cap');
+    btn.onclick = () => {
+        const hide = !tbl.classList.toggle('hide') ? false : true;
+        btn.classList.toggle('on', !hide);
+        btn.textContent = hide ? 'Labels hidden' : 'Labels shown';
+        cap.textContent = hide
+            ? 'Unlabelled: only inputs x, so there are no right answers to learn the mapping from.'
+            : 'Labelled pairs: the algorithm can learn the mapping X → Y from these.';
+    };
+})();
+
+/* ===========================================
+   WIDGET 2: input → output matcher with a connecting arrow
+   Uses offsetTop/Left (stage units), unaffected by scaling
+   =========================================== */
+(() => {
+    const apps = ['Spam filter', 'Speech recognition', 'Machine translation', 'Online advertising', 'Self-driving car', 'Visual inspection'];
+    const ins = [...document.querySelectorAll('#w2in .mcard')], outs = [...document.querySelectorAll('#w2out .mcard')];
+    const path = document.getElementById('w2path'), cap = document.getElementById('w2cap'), box = document.getElementById('w2');
+    ins.forEach(b => b.onclick = () => {
+        const i = +b.dataset.i, o = outs.find(d => +d.dataset.o === i);
+        ins.forEach(x => x.classList.toggle('sel', x === b)); outs.forEach(x => x.classList.toggle('sel', x === o));
+        // .matcher is the offsetParent of every card, so offsets share one coordinate space
+        const x1a = b.offsetLeft + b.offsetWidth, y1a = b.offsetTop + b.offsetHeight / 2;
+        const x2 = o.offsetLeft, y2 = o.offsetTop + o.offsetHeight / 2;
+        path.setAttribute('d', `M${x1a} ${y1a} C ${x1a + 70} ${y1a}, ${x2 - 70} ${y2}, ${x2 - 6} ${y2}`);
+        cap.innerHTML = `<b>${apps[i]}</b>: ${b.textContent.replace(/^\S+\s/, '')} → ${o.textContent}`;
+    });
+})();
+
+/* ===========================================
+   WIDGET 3: train → predict stepper (4 states)
+   =========================================== */
+(() => {
+    let s = 0;
+    const caps = [
+        'We start with a training set: inputs x, each with its right answer y.',
+        'Training: the model learns from every (x, y) pair.',
+        'Trained: the model now holds a mapping from x to y.',
+        'Prediction: a brand-new x with no label goes in, and a guess ŷ comes out. No label needed.'
+    ];
+    const pairs = [...document.querySelectorAll('#w3pairs .pairchip:not(.new)')];
+    const render = () => {
+        pairs.forEach(p => p.classList.toggle('used', s >= 1));
+        document.getElementById('w3model').classList.toggle('trained', s >= 2);
+        document.getElementById('w3ms').textContent = s === 0 ? 'untrained' : s === 1 ? 'learning…' : 'trained ✓';
+        document.getElementById('w3new').style.visibility = s >= 3 ? 'visible' : 'hidden';
+        document.getElementById('w3out').style.visibility = s >= 3 ? 'visible' : 'hidden';
+        document.getElementById('w3cap').textContent = caps[s];
+        document.getElementById('w3step').textContent = `Step ${s + 1} of 4`;
+        [...document.querySelectorAll('#w3dots i')].forEach((d, k) => d.classList.toggle('on', k === s));
+        document.getElementById('w3prev').disabled = s === 0;
+        document.getElementById('w3next').disabled = s === 3;
+    };
+    document.getElementById('w3prev').onclick = () => { s = Math.max(0, s - 1); render(); };
+    document.getElementById('w3next').onclick = () => { s = Math.min(3, s + 1); render(); };
+    render();
+})();
+
+/* ===========================================
+   HOUSE PRICE PLOT (shared by widgets 4 & 5)
+   Data: illustrative points shaped like the lecture's plot.
+   line(750) ≈ $150k, curve(750) ≈ $200k, as in the video.
+   =========================================== */
+const HOUSES = [[520,125],[640,150],[800,190],[900,175],[1050,240],[1200,250],[1350,275],[1500,300],[1700,330],[1900,370],[2150,395],[2400,440]];
+const lineFit = s => 0.16 * s + 30;
+const curveFit = s => 200 + 0.22 * (s - 750) - 0.00004 * (s - 750) ** 2;
+const PX = s => 70 + (s - 400) / 2200 * 660, PY = p => 360 - p / 500 * 330;
+function drawPlot(svg) {
+    const NS = 'http://www.w3.org/2000/svg', el = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); svg.appendChild(e); return e; };
+    for (let p = 100; p <= 500; p += 100) { el('line', { class: 'grid', x1: 70, x2: 730, y1: PY(p), y2: PY(p) }); el('text', { x: 20, y: PY(p) + 6 }).textContent = p; }
+    for (let s = 500; s <= 2500; s += 500) el('text', { x: PX(s) - 20, y: 390 }).textContent = s;
+    el('line', { class: 'ax', x1: 70, y1: 30, x2: 70, y2: 360 }); el('line', { class: 'ax', x1: 70, y1: 360, x2: 730, y2: 360 });
+    el('text', { x: 620, y: 345 }).textContent = 'size (ft²)';
+    el('text', { x: 80, y: 40 }).textContent = 'price ($1000s)';
+    const pts = s => fn => { let d = ''; for (let x = 450; x <= 2550; x += 25) d += (d ? ' L' : 'M') + PX(x).toFixed(1) + ' ' + PY(fn(x)).toFixed(1); return d; };
+    const line = el('path', { class: 'fit', d: pts()(lineFit) });
+    const curve = el('path', { class: 'fit curve', d: pts()(curveFit) });
+    HOUSES.forEach(([s, p]) => el('text', { x: PX(s) - 9, y: PY(p) + 8, style: 'font:700 22px DM Sans;fill:#1a1a1a' }).textContent = '×');
+    const marker = el('line', { class: 'marker', x1: 0, x2: 0, y1: 30, y2: 360 });
+    const hit = el('circle', { class: 'hit', r: 9, cx: 0, cy: 0 });
+    return { line, curve, marker, hit };
+}
+
+/* WIDGET 4: size slider reads the prediction off the straight line */
+(() => {
+    const p = drawPlot(document.getElementById('plot4')); p.curve.style.opacity = 0;
+    const r = document.getElementById('w4size'), out = document.getElementById('w4out'), cap = document.getElementById('w4cap');
+    const update = () => {
+        const s = +r.value, y = lineFit(s);
+        p.marker.setAttribute('x1', PX(s)); p.marker.setAttribute('x2', PX(s));
+        p.hit.setAttribute('cx', PX(s)); p.hit.setAttribute('cy', PY(y));
+        out.textContent = `$${Math.round(y)}k`;
+        cap.textContent = `${s.toLocaleString()} ft² → the straight line predicts about $${Math.round(y)}k.` + (s === 750 ? ' (Your friend\'s house.)' : '');
+    };
+    r.addEventListener('input', update);
+    r.addEventListener('keydown', e => e.stopPropagation());
+    update();
+})();
+
+/* WIDGET 5: toggle line vs curve at a fixed 750 ft² */
+(() => {
+    const p = drawPlot(document.getElementById('plot5'));
+    const bl = document.getElementById('w5line'), bc = document.getElementById('w5curve');
+    const out = document.getElementById('w5out'), cap = document.getElementById('w5cap');
+    const set = curve => {
+        const y = curve ? curveFit(750) : lineFit(750);
+        p.line.style.opacity = curve ? .15 : 1; p.curve.style.opacity = curve ? 1 : .15;
+        p.marker.setAttribute('x1', PX(750)); p.marker.setAttribute('x2', PX(750));
+        p.hit.setAttribute('cx', PX(750)); p.hit.setAttribute('cy', PY(y));
+        bl.classList.toggle('on', !curve); bc.classList.toggle('on', curve);
+        out.textContent = `$${Math.round(y)}k`;
+        cap.textContent = curve ? 'Same data, curve: closer to $200k. The model changed, not the house.' : 'Same data, straight line: about $150k.';
+    };
+    bl.onclick = () => set(false); bc.onclick = () => set(true);
+    set(false);
+})();
+
+/* ===========================================
+   WIDGET 6: click the number line to sample a price
+   =========================================== */
+(() => {
+    const nl = document.getElementById('w6'), pin = document.getElementById('w6pin'), cap = document.getElementById('w6cap');
+    for (let v = 0; v <= 500; v += 100) {
+        const t = document.createElement('div'); t.className = 'tick'; t.style.left = (v / 5) + '%'; nl.appendChild(t);
+        const l = document.createElement('div'); l.className = 'tl'; l.style.left = (v / 5) + '%'; l.textContent = `$${v}k`; nl.appendChild(l);
+    }
+    nl.addEventListener('click', e => {
+        const frac = Math.max(0, Math.min(1, e.offsetX / nl.offsetWidth));
+        if (e.target !== nl && !e.target.classList.contains('bar')) return;
+        const usd = Math.round(frac * 500000 + Math.random() * 999);
+        pin.style.display = 'block'; pin.style.left = (frac * 100) + '%';
+        pin.textContent = '$' + usd.toLocaleString();
+        cap.textContent = `$${usd.toLocaleString()} is a perfectly valid prediction. Regression outputs a number, not one of a few fixed categories.`;
+    });
+})();
+
+/* ===========================================
+   QUIZ: one question at a time, clickable answers
+   =========================================== */
+(() => {
+    const Q = [
+        { q: 'What makes learning "supervised"?', o: ['A human watches the training', 'The training data includes the correct output y for each x', 'The model is small'], a: 1, e: 'The labels (right answers) are the supervision.' },
+        { q: 'A model reads a photo of a phone and outputs "dent / no dent". What is Y?', o: ['The photo', 'The defect label', 'The production line'], a: 1, e: 'X is the photo, Y is the label. This is visual inspection, from the lecture.' },
+        { q: 'A line predicts $150k for 750 ft²; a curve predicts $200k. Which should you trust?', o: ['The higher one', 'Whichever is chosen systematically from the data', 'Always the straight line'], a: 1, e: 'Ng: don\'t pick the model that gives your friend the best price.' },
+        { q: 'Predicting tomorrow\'s temperature in °C is…', o: ['Regression', 'Not supervised learning', 'Classification'], a: 0, e: 'It\'s a number from infinitely many possible values.' },
+        { q: 'After training, does the model need y to make a prediction?', o: ['Yes, always', 'No, it takes x alone', 'Only for new inputs'], a: 1, e: 'Labels are needed for training; prediction uses x alone.' }
+    ];
+    const ans = Array(Q.length).fill(null); let cur = 0;
+    const $ = id => document.getElementById(id);
+    const list = $('qlist');
+    Q.forEach((_, i) => { const b = document.createElement('button'); b.textContent = `Question ${i + 1}`; b.onclick = () => { cur = i; render(); }; list.appendChild(b); });
+    function render() {
+        const q = Q[cur];
+        $('qnum').textContent = `Question ${cur + 1} of ${Q.length}`;
+        $('qtext').textContent = q.q;
+        $('qopts').innerHTML = '';
+        q.o.forEach((t, k) => {
+            const b = document.createElement('button'); b.className = 'opt'; b.textContent = t;
+            if (ans[cur] !== null) { if (k === q.a) b.classList.add('right'); else if (k === ans[cur]) b.classList.add('wrong'); }
+            b.onclick = () => { if (ans[cur] === null) { ans[cur] = k; render(); } };
+            $('qopts').appendChild(b);
+        });
+        $('qexp').innerHTML = ans[cur] === null ? '' : (ans[cur] === q.a ? '<b style="color:var(--good)">Correct.</b> ' : '<b style="color:var(--bad)">Not quite.</b> ') + q.e;
+        [...list.children].forEach((b, i) => { b.className = (i === cur ? 'cur ' : '') + (ans[i] === null ? '' : ans[i] === Q[i].a ? 'ok' : 'no'); });
+        $('qscore').textContent = `${ans.filter((a, i) => a === Q[i].a).length} / ${Q.length}`;
+        $('qnext').textContent = cur === Q.length - 1 ? 'Back to question 1' : 'Next question →';
+    }
+    $('qnext').onclick = () => { cur = (cur + 1) % Q.length; render(); };
+    render();
+})();
+
+/* ===========================================
+   INLINE EDITING: E or top-left hotzone toggles edit mode.
+   Edits auto-save to localStorage; Ctrl/Cmd+S downloads the file.
+   =========================================== */
+const editor = {
+    isActive: false,
+    key: 'deck-edits:' + location.pathname,
+    els: [...document.querySelectorAll('[data-edit]')],
+    load() { try { const d = JSON.parse(localStorage.getItem(this.key) || '{}'); this.els.forEach((el, i) => { if (d[i] != null) el.innerHTML = d[i]; }); } catch (e) {} },
+    save() { try { const d = {}; this.els.forEach((el, i) => d[i] = el.innerHTML); localStorage.setItem(this.key, JSON.stringify(d)); } catch (e) {} },
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editing', this.isActive);
+        this.els.forEach(el => el.setAttribute('contenteditable', this.isActive));
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        if (!this.isActive) this.save();
+    }
+};
+editor.load();
+editor.els.forEach(el => el.addEventListener('input', () => editor.save()));
+(() => {
+    const hz = document.querySelector('.edit-hotzone'), tg = document.getElementById('editToggle'); let t = null;
+    tg.addEventListener('click', () => editor.toggleEditMode());
+    hz.addEventListener('click', () => editor.toggleEditMode());
+    hz.addEventListener('mouseenter', () => { clearTimeout(t); tg.classList.add('show'); });
+    hz.addEventListener('mouseleave', () => { t = setTimeout(() => { if (!editor.isActive) tg.classList.remove('show'); }, 400); });
+    tg.addEventListener('mouseenter', () => clearTimeout(t));
+    tg.addEventListener('mouseleave', () => { t = setTimeout(() => { if (!editor.isActive) tg.classList.remove('show'); }, 400); });
+    document.addEventListener('keydown', e => {
+        if ((e.key === 'e' || e.key === 'E') && !e.target.closest('[contenteditable="true"], input, textarea')) editor.toggleEditMode();
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault(); editor.save();
+            const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+            a.download = location.pathname.split('/').pop() || 'deck.html'; a.click();
+        }
+    });
+})();
+</script>
+</body>
+</html>
