@@ -1,0 +1,418 @@
+[00:03] [Music]
+[00:12] So now let us discuss something
+[00:14] practical something that you can
+[00:18] um yourself uh do this exercise
+[00:23] can be a laboratory exercise or it could
+[00:25] be practicals that you can do at home.
+[00:32] So you are supposed to take the power
+[00:36] from the mains grid which is 230 volts
+[00:40] have a switch and MCB
+[00:43] a switch or an MCB it can MCB can play
+[00:45] the role of a switch and have a
+[00:48] transformer a step down transformer.
+[00:52] I want you to make
+[00:54] uh a multi-output power supply that is
+[00:58] three outputs
+[01:00] uh two 15 volts and one 5 volts and uh
+[01:05] we'll try to see uh if uh we can
+[01:08] implement what we have learned till now
+[01:11] and also try to use uh some IC
+[01:15] regulators for the other two windings.
+[01:18] So this is a transformer. You have to
+[01:20] take a uh multi-output
+[01:23] uh transformer
+[01:26] uh having three outputs
+[01:28] and to one of the secondaries. Let us
+[01:31] connect this thermister
+[01:34] the diode bridge
+[01:36] the full bridge rectifier that we have
+[01:40] studied till now. connect a capacitor to
+[01:43] the output of the diode bridge and that
+[01:46] becomes your unregulated this becomes
+[01:48] your unregulated DC voltage available to
+[01:52] you.
+[01:54] The transformer um uh should be a 50 Hz
+[01:59] transformer
+[02:00] laminated.
+[02:02] Uh you will you will get laboratory
+[02:05] transformers. Uh let me show you uh uh
+[02:09] let me show you a product. Let me show
+[02:11] you a transformer.
+[02:14] So here is a transformer. This is a
+[02:18] laboratory transformer.
+[02:20] So it looks like this.
+[02:24] This is uh having uh EI laminations.
+[02:27] These are the laminations varnished.
+[02:31] This is the coil which is wound and the
+[02:34] wires coming out to the terminal lug
+[02:36] which is there on top.
+[02:42] So you see that
+[02:45] there are multiple windings brought out
+[02:48] to this
+[02:49] uh terminals
+[02:53] input. So this is the input here
+[02:57] which says 0 to uh 230 230 volts. So
+[03:02] that is these two terminals
+[03:06] this red and black. red and black which
+[03:09] you can use as inputs and these terminal
+[03:13] lugs to be connected to the 230 volt
+[03:15] grid
+[03:18] and the others are outputs. You have
+[03:20] three outputs.
+[03:22] So you have 1 2 3 here 1 2 3 and 1 2 3.
+[03:31] So here if you see
+[03:34] it is 12 0 12. So this is 12. This is a
+[03:37] center point 0 and 12. So it means from
+[03:41] here to here it is 24 volts. Here to
+[03:43] here it is 12 volt and here to here 12
+[03:45] volts. That's what it would mean. So 12
+[03:48] 0 12 with the center tap also available
+[03:51] if you want to use it for a transend as
+[03:53] a transcender tap transformer. Otherwise
+[03:55] you can use only the extreme uh ones for
+[03:59] uh 24 volts and uh extreme and the
+[04:02] midpoint for 12 volts. Likewise you have
+[04:06] here 1 2 3.
+[04:10] This is 15 volt. 15 0 15. So from here
+[04:14] to here it is 30 volt. From here to here
+[04:16] 15 volt. Likewise if I come here 1 2 3.
+[04:22] These three terminals are going to give
+[04:25] you an output which is
+[04:28] 9 09. So here to here it is 18 volts and
+[04:32] here to the center point it is 9 volts
+[04:36] RMS.
+[04:39] So this is how a laboratory transformer
+[04:41] would look like. You can buy a
+[04:43] laboratory transformer like this and
+[04:46] probably use it uh for um making your
+[04:51] power supply.
+[04:56] And coming back to the circuit board
+[04:58] here,
+[05:02] let me complete this circuit. We know
+[05:04] this. So we use a series pass. I'm using
+[05:07] a BJT here. And it is driven by this
+[05:11] resistance and op amp combination
+[05:16] minus and plus.
+[05:18] And we know how the reference to the
+[05:21] plus terminal of the opamp is given. So
+[05:24] we draw the reference circuit a resistor
+[05:27] as zener diode and from the midpoint
+[05:30] here you tap off and connect it to a
+[05:32] potential meter and uh that can be
+[05:36] potentiometer point can be used as a
+[05:38] reference here. In the meantime let me
+[05:41] also draw for the short circuiting. I am
+[05:43] tapping off the drive signal from here
+[05:47] connecting it to another BJT
+[05:49] and I have a uh current sensor in the
+[05:53] form of a resistor
+[05:55] and I will connect this here. So this
+[05:58] forms your foldback current limiting
+[06:01] circuit.
+[06:04] Then you have the output wtage sensing
+[06:07] by these two uh resistor divider network
+[06:13] and then that is given to the minus
+[06:17] and we take the VRF here
+[06:21] and the output
+[06:24] is this is the output and this can be
+[06:26] connected to whatever the load and here
+[06:30] I'm connecting it to a resistive load or
+[06:32] not.
+[06:34] So that is vot.
+[06:45] So now let us
+[06:47] mark the components
+[06:51] the various parameters. This is I not
+[06:54] going flowing through R. This will be
+[06:56] R1. This is R2. We know how to choose
+[06:59] the values of R1 and R2 to get AV KN.
+[07:03] And this is RS. This is the current
+[07:06] sense resistor.
+[07:08] RA A RB. We know how to choose the value
+[07:11] of RA RB when discuss when we discuss
+[07:13] the design of the foldback circuit.
+[07:19] R3 R4. We also have discussed how to dis
+[07:24] how to uh choose or select the values of
+[07:27] R3 and R4 for the reference while
+[07:30] discussing the reference circuit
+[07:33] is R5. So this resistor
+[07:37] R5 is something that will limit uh the
+[07:41] current such that the opam doesn't get
+[07:43] damaged. we have C Q1 Q2
+[07:48] this 230 volts
+[07:51] 1212 let's say I take 1212 and I'm not
+[07:54] using the center tab so which means that
+[07:56] I I have 24 volts here so 24 2 is
+[08:01] approximately 34 volts of unregulated
+[08:05] voltage which will come in here so let
+[08:08] us say the output should be at 15 volt
+[08:11] so this will be the 15 volts regulated
+[08:14] and let's say 1 amp which means 15
+[08:17] watts.
+[08:24] So
+[08:26] if you have a plus plus - 20% tolerance
+[08:29] you will see that this voltage here will
+[08:32] move from 27 volts to 40 volt.
+[08:38] This is for an input mains 230 volts
+[08:40] plus - 20% tolerance.
+[08:45] Now what is VCE? VC will be 27 - 15 on
+[08:51] the low end which will be uh 12 volt
+[08:56] and
+[08:57] at the high end 40 volt minus 15 which
+[09:01] is 35 volt. So the V VCE across the Q1
+[09:07] can vary from 12 to 35 volts.
+[09:11] So therefore
+[09:14] uh you one one needs to uh think about
+[09:18] the heat sink uh design for Q1. PD max
+[09:24] will be 35 volts into 1 amp which is 35
+[09:30] W.
+[09:31] At the lower end it'll be 12 volts into
+[09:33] 1 amp which is 12 watts. So 12 watts to
+[09:36] 35 watts is the dissipation. But uh one
+[09:40] must choose the heat sink such that 35
+[09:42] watts can be dissipated without blowing
+[09:46] up the um transistor Q1 without the
+[09:50] junction temperature of transfer Q1
+[09:52] crossing the TJ max limit.
+[09:58] So for a 15 watts output you need here
+[10:02] 50 watts. 35 watts plus 15 watts you
+[10:05] need 35 watt design for this diode
+[10:08] bridge capacitor filter circuit. And we
+[10:11] know how to design the uh full bridge um
+[10:14] and the capacitor filter circuit uh as
+[10:17] we have discussed this here.
+[10:22] So this resistor R5
+[10:26] uh is
+[10:28] uh a resistor that limits the current
+[10:30] drawn from the op amp. See the op amps
+[10:33] have a sourcing capability of 10
+[10:35] milliamps to 50 milliamps. So you should
+[10:38] not draw more than 75% of its rating.
+[10:41] Let's say 35 milliamps from the op amp.
+[10:44] If it's a 50 milliamp uh op amp, if it's
+[10:46] a 20 milliamp op amp, don't draw more
+[10:49] than 15 milliamps from this. The worst
+[10:52] case would be when you short the output.
+[10:55] So when the output becomes shorted,
+[10:59] this point is V + I RS. Uh so this would
+[11:03] be uh V
+[11:06] um plus I not RS uh plus 7 whatever the
+[11:12] 6 uh the VBE of the uh BJT
+[11:17] and when you short uh the output V not
+[11:20] becomes zero so it'll just be uh I not
+[11:23] RS plus.5 so under the worst case
+[11:26] whatever the supply voltage divided by
+[11:29] R5 should be less than 75% of the rated
+[11:32] sourcing capability of the opamp. So
+[11:35] like that you choose R5. This is very
+[11:37] important. This is the protection for
+[11:39] the opamp.
+[11:43] Okay. So the worst case uh condition is
+[11:47] if V not is equal to zero.
+[11:51] Now how to give the supply for this?
+[11:53] Because the there is a swing unregulated
+[11:56] voltage swing is from 27 volts to 40
+[11:59] volts and we need to give a 15 volt
+[12:02] supply to the op amp. So you can tap off
+[12:06] uh a resistor and a zener and from the
+[12:09] midpoint of that uh you can design the
+[12:12] zener to handle around uh 25 to 30
+[12:15] milliamps
+[12:18] and uh use that one as the uh VCC supply
+[12:22] for the op amp.
+[12:26] So that would uh be uh one of the uh
+[12:31] power supplies 15vt power supply. This
+[12:33] is something the discrete one which we
+[12:35] have studied.
+[12:37] The second one uh also has all this. I
+[12:42] have not put the thermister but it means
+[12:45] that we include a thermister for surge
+[12:48] limiting protection. It's a capacitors
+[12:51] and you have a three pin IC regulator.
+[12:55] So one of the regulators LM 317
+[12:59] which is having three pins in out and an
+[13:03] adjust pin
+[13:07] which uh is taken out and I have a uh
+[13:12] resistance division network like this
+[13:18] and you have an output R not.
+[13:21] So the way this operates is that LM317
+[13:24] gives between the output and adjust pin
+[13:28] 1.25 volts fixed constant reference
+[13:32] and 1.25 volts divided by R1 will be the
+[13:35] current flowing through that. This is a
+[13:38] very high input impedance point. No
+[13:40] current flows there. So uh the same
+[13:43] current flows through R2 also. So V will
+[13:46] be 1.25 25 divided by R1 into R1 + R2
+[13:52] will be V which is 1 + R2 by R1. This is
+[13:57] the value of V K and let's say this is
+[14:00] set to 15 volts by adjusting the value
+[14:03] of R1 and R2.
+[14:06] There is another this is a V wtage
+[14:09] regulator for a variable output by
+[14:11] adjusting or not you can get variable
+[14:14] output wtage.
+[14:17] So, LM317
+[14:19] approximately around uh 1 1 to 1.5 amps
+[14:24] it can handle. There is another variable
+[14:27] IC voltage regulator called uh LM 723
+[14:33] which has a circuit internal circuit
+[14:36] almost like this only the current sense
+[14:39] RS part is brought out. uh you can have
+[14:42] one more uh uh boost Q1 connected as a
+[14:45] Darlington
+[14:47] uh so like that. So let me just show you
+[14:50] the data sheet so that it will give you
+[14:52] an idea
+[15:20] So here you see the data sheet of LM723.
+[15:25] So LM723
+[15:28] is very similar to the circuit that we
+[15:31] discrete circuit uh linear power supply
+[15:34] circuit that we discussed. You see
+[15:36] there's a series pass
+[15:38] okay and you look at this current
+[15:40] limiter
+[15:42] series pass which goes to the output
+[15:45] right there is also a zener here and you
+[15:50] have a current limiter
+[15:53] current sense here you connect the
+[15:54] resistance RS between the current limits
+[15:58] which can so this internal uh BJT can
+[16:02] divert the drive from this series class.
+[16:06] You have an error amplifier inbuilt
+[16:11] and uh you have a voltage reference
+[16:15] internal voltage reference VRF which you
+[16:17] can use for
+[16:19] uh giving to the plus input.
+[16:24] So this is uh something similar to uh uh
+[16:28] almost all the parts of the circuit that
+[16:30] we discussed falls into the IC.
+[16:36] This is similar to the circuit that we
+[16:38] uh discussed. All these parts will fall
+[16:41] into the IC.
+[16:43] Now let me look at let me show you LM317
+[16:47] also.
+[16:52] So here is the data sheet of LM317. It's
+[16:55] a three terminal adjustable regulator.
+[16:59] So output wtage range adjustable from
+[17:02] 1.25 volts which is the which is the
+[17:06] voltage which is across output to adjust
+[17:09] 1.25 25 volts and by adjusting the uh R2
+[17:15] R1 and R2 combination you will be able
+[17:18] to get a variable output wtage
+[17:22] and output current greater than 1.5
+[17:24] amps.
+[17:27] So internal short circuit current
+[17:29] limiting thermal overload protection all
+[17:31] those things are inbuilt within the IC.
+[17:34] So it has very less number of
+[17:36] components.
+[17:39] So uh there is let me see if any other
+[17:44] interesting data sheet value. Look at
+[17:46] this junction temperature
+[17:50] uh is 150° centigrade.
+[17:53] You should not exceed the junction
+[17:55] temperature 150° centigrade. So uh you
+[17:59] have to
+[18:01] um you have to be careful. See that
+[18:05] these are the packages you get it in to
+[18:07] 220 to263 package to which heatsinks may
+[18:11] need to be attached
+[18:15] between the input and the output the
+[18:17] differential voltage
+[18:20] should be uh greater than 3 volts. That
+[18:23] is important. And this differential
+[18:25] voltage into the load current that flows
+[18:28] through will be the uh power dissipated
+[18:32] through the uh device. And uh if uh if
+[18:38] the thermal resistance is not
+[18:40] sufficient, you need to put uh external
+[18:43] uh heat sink.
+[18:46] So here here is some thermal
+[18:48] information. Theta junction to ambient
+[18:52] uh junction to case. Uh so junction to
+[18:56] board these are all the thermal
+[18:58] impedances available which you can use
+[19:00] and try to uh so you see 38 for to 263°
+[19:07] centigrade per watt 36° centigrade per
+[19:10] watt uh for a junction to case.
+[19:15] So use that uh like what we have
+[19:17] discussed and then calculate the heat
+[19:20] sink.
+[19:24] Another class of regulators IC
+[19:26] regulators or the 78
+[19:29] uh series the 7805. So it is 7805
+[19:35] then means it's a 5 volt regulator. If
+[19:37] it is 7815 then it's a 15 volt
+[19:40] regulator. 7812 it's a 12vt regulator.
+[19:44] So this needs no external components at
+[19:48] all. Output current up to 1.5 amps,
+[19:50] three terminals and input, output and
+[19:54] common. That's it. No other um
+[19:58] components are required very robust and
+[20:00] very popular. So you see that for 5
+[20:03] volts 7805
+[20:05] for 8 volt 7808 for 10 volt 7810 like
+[20:09] that.
+[20:12] So uh this uh also you can see DJ max
+[20:18] 150° centigrade you should not exceed.
+[20:21] Okay. And uh you also have the R theta
+[20:25] JC and R theta JA value R theta junction
+[20:27] to case R theta uh junction to ambient
+[20:32] these values. Use these values to uh
+[20:35] appropriately design the heat sink.
+[20:41] So let us um also have uh so here you
+[20:46] see that should be greater than 3 volts
+[20:47] the differential voltage so that at
+[20:50] least 18 volts you should have at the uh
+[20:54] unregulated input
+[20:58] and we'll have the third winding and the
+[21:02] third full bridge regulator here I will
+[21:05] use 7805
+[21:07] and just 7805 is sufficient and uh
+[21:12] minimum number of components V not is 5
+[21:15] volt. You need to maintain at least
+[21:18] greater than 3 volts input output
+[21:19] differential means that this capacitor
+[21:22] point wtage should be greater than 8
+[21:25] volts under any condition.
+[21:28] So choose the values of the winding
+[21:30] accordingly.
+[21:34] So uh heat sink design is important for
+[21:37] 78 LM 317 and 7805 and also for Q1
+[21:45] and uh let me
+[21:53] let me say that okay this this is an
+[21:56] this is called a variable IC based
+[21:59] regulator this is called a fixed IC
+[22:02] regulator. reg fixed voltage IC
+[22:04] regulator.
+[22:06] So what experiment do you want to do? So
+[22:10] V not for each of these cases V not is
+[22:14] one parameter you need to worry about.
+[22:16] One is the other one is V in this
+[22:19] voltage here VI and I not. So line
+[22:24] regulation line regulation with respect
+[22:26] to VI. So let us tabulate
+[22:31] vi and vot and conduct some uh five uh
+[22:37] variations.
+[22:39] So you need to vary vi. So how will you
+[22:42] vary vi? This is the voltage at this
+[22:45] point. So you can have an auto
+[22:48] transformer.
+[22:49] You can have an auto transformer here
+[22:52] and uh vary the auto transformer so that
+[22:55] the uh input wtage can be varied
+[23:03] uh and you uh tabulate V not and VI. Now
+[23:07] load regulation this is another
+[23:10] important uh activity that you need to
+[23:13] do with respect to regulators.
+[23:16] I not is the independent variable. You
+[23:18] vary I not and see what is effect on V.
+[23:22] So conduct few uh for different loads
+[23:26] and change R to v I not
+[23:31] then you plot VI versus V.
+[23:36] X-axis keep VI and V is on the Y axis
+[23:40] and plot I versus V. Again x-axis the
+[23:45] independent variable I knot and vi not
+[23:48] on the y-axis. These two plots will give
+[23:50] you an idea of regulation as vi varies
+[23:54] and as load I not varies.

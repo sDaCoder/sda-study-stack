@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Example: Linear Power Supply (W1_L1.6)</title>
+<!-- Fonts: Big Shoulders Display (headings), IBM Plex Sans (body), IBM Plex Mono (labels, values) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- KaTeX: renders the LaTeX formulas and variable names -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>
+/* ===========================================
+   THEME: "Solder Mask". PCB green, copper traces, silkscreen labels.
+   Change these variables to recolour the whole deck.
+   =========================================== */
+:root{
+  --stage-bg:#04140f;
+  --slide-bg:#0b3327;
+  --mask:#0b3327; --mask2:#0f3f31; --mask-deep:#072519;
+  --copper:#d9905a; --copper-hi:#ffc48f;
+  --silk:#eef2ea; --silk-dim:#9fb8ac; --tin:#c9d1cf;
+  --hot:#ff6a55; --cool:#7fd3ff; --ok:#9be59b;
+  --font-display:'Big Shoulders Display',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ===========================================
+   FIXED 16:9 STAGE: viewport-base.css (full contents)
+   =========================================== */
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--stage-bg,#000)}
+.deck-viewport{position:fixed;inset:0;overflow:hidden;background:var(--stage-bg,#000)}
+.deck-stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;background:var(--slide-bg,#fff)}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;display:block;visibility:hidden;opacity:0;pointer-events:none;background:var(--slide-bg,#fff)}
+.slide.active,.slide.visible{visibility:visible;opacity:1;pointer-events:auto;z-index:1}
+img,video,canvas,svg{max-width:100%;max-height:100%}
+.deck-controls{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:1000}
+@media print{
+  html,body{width:1920px;height:auto;overflow:visible;background:#fff}
+  .deck-viewport{position:static;overflow:visible;background:#fff}
+  .deck-stage{position:static;width:auto;height:auto;transform:none!important;background:none}
+  .slide{position:relative;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:1920px;height:1080px;break-after:page;page-break-after:always}
+  .slide:last-child{break-after:auto;page-break-after:auto}
+  .deck-controls{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.2s!important}
+}
+
+/* ===========================================
+   SLIDE SURFACE: solder mask with a via-dot grid
+   =========================================== */
+.slide{color:var(--silk);font-family:var(--font-body);
+  background:radial-gradient(1300px 800px at 72% 42%,var(--mask2),transparent 70%),
+  radial-gradient(circle,rgba(0,0,0,.33) 2px,transparent 3px) 0 0/48px 48px,var(--mask)}
+.slide{transition:opacity .45s var(--ease),visibility .45s}
+
+/* ===========================================
+   REVEAL ANIMATION (staggered on slide entry)
+   =========================================== */
+.reveal{opacity:0;transform:translateX(-18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.slide.visible .reveal{opacity:1;transform:none}
+.slide.visible .reveal.d1{transition-delay:.08s}.slide.visible .reveal.d2{transition-delay:.16s}
+.slide.visible .reveal.d3{transition-delay:.24s}.slide.visible .reveal.d4{transition-delay:.32s}
+
+/* ===========================================
+   CONCEPT SLIDE LAYOUT: header, text column (left), circuit board (right)
+   =========================================== */
+.hd{position:absolute;left:80px;top:58px;right:80px}
+.tag{font:500 20px var(--font-mono);color:var(--silk-dim);letter-spacing:.12em;display:flex;gap:16px;align-items:center;text-transform:uppercase}
+.tag span{border:2px solid var(--silk-dim);padding:3px 11px;color:var(--silk)}
+.hd h2{font:800 86px/1 var(--font-display);text-transform:uppercase;margin-top:14px;letter-spacing:.01em}
+.hd h2 em{font-style:normal;color:var(--copper)}
+.txt{position:absolute;left:80px;top:232px;width:600px;bottom:70px;display:flex;flex-direction:column;gap:18px}
+.core{font-size:24.5px;line-height:1.45;color:#e2ece5}
+.pts{list-style:none;font-size:21px;line-height:1.4;color:#cfe0d6;display:flex;flex-direction:column;gap:8px}
+.pts li{padding-left:28px;position:relative}
+.pts li::before{content:"";position:absolute;left:3px;top:10px;width:11px;height:11px;border-radius:50%;background:var(--tin);box-shadow:0 0 0 3px rgba(201,209,207,.2)}
+.pts li.k::before{background:var(--copper)}
+.pts b{color:var(--silk);font-weight:600}
+.eq{font:500 21px/1.5 var(--font-mono);color:var(--copper-hi);border:2px solid rgba(217,144,90,.55);border-radius:8px;padding:10px 18px;background:rgba(0,0,0,.2);display:flex;flex-direction:column;gap:6px}
+.eq .katex{font-size:1.3em}
+/* Inline math from texify(): variable names in body text, labels and cards */
+.katex{text-transform:none;letter-spacing:0}
+.tx .katex{font-size:1.08em}
+.r small .katex,.field label .katex{font-size:1.15em}
+.note{font-size:19px;line-height:1.42;color:#f3d6cc;border-left:4px solid var(--hot);padding:4px 0 4px 16px}
+.note b{color:var(--hot)}
+.gf{font-size:19px;line-height:1.42;color:#cfe4f0;border-left:4px solid var(--cool);padding:4px 0 4px 16px}
+.gf b{color:var(--cool)}
+.try{font-size:20px;color:var(--silk-dim);line-height:1.4}.try b{color:var(--silk)}
+.watch{margin-top:auto;align-self:flex-start;font:500 20px var(--font-mono);color:var(--mask-deep);background:var(--copper);padding:11px 20px;border-radius:6px;text-decoration:none;transition:background .2s}
+.watch:hover{background:var(--copper-hi)}
+
+.board{position:absolute;left:716px;top:232px;width:1124px;height:778px;border:2px solid rgba(238,242,234,.16);border-radius:12px;background:rgba(3,20,15,.38);overflow:hidden}
+.board > svg.sch{display:block;width:1120px;height:558px}
+.ctl{position:absolute;left:0;right:0;bottom:0;height:216px;border-top:2px solid rgba(238,242,234,.12);padding:18px 24px;display:flex;gap:26px;align-items:flex-start;background:rgba(0,0,0,.16)}
+
+/* ===========================================
+   CONTROLS: sliders, buttons, readouts
+   =========================================== */
+.col{display:flex;flex-direction:column;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px;width:250px}
+.field label{font:500 17px var(--font-mono);color:var(--silk-dim);display:flex;justify-content:space-between;gap:10px}
+.field label output{color:var(--copper-hi);margin-left:auto}
+.field label{justify-content:flex-start;gap:7px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;background:linear-gradient(90deg,var(--copper),#7a5236);border-radius:3px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--tin);margin-top:-11px;border:4px solid var(--mask-deep);box-shadow:0 0 0 2px var(--copper)}
+input[type=range]::-moz-range-track{height:6px;background:linear-gradient(90deg,var(--copper),#7a5236);border-radius:3px}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--tin);border:4px solid var(--mask-deep);box-shadow:0 0 0 2px var(--copper)}
+input[type=range]:focus-visible{outline:2px dashed var(--copper-hi);outline-offset:2px}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:500 18px var(--font-mono);color:var(--copper-hi);background:transparent;border:2px solid var(--copper);border-radius:6px;padding:9px 15px;cursor:pointer;min-height:48px;transition:background .15s,color .15s}
+.btn:hover{background:rgba(217,144,90,.15)}
+.btn.on{background:var(--copper);color:var(--mask-deep)}
+.btn.warn.on{background:var(--hot);border-color:var(--hot);color:#2a0b06}
+.ros{display:grid;grid-template-columns:repeat(3,auto);gap:10px 26px;align-content:start}
+.r{display:flex;flex-direction:column;min-width:96px}
+.r small{font:500 14.5px var(--font-mono);color:var(--silk-dim);text-transform:uppercase;letter-spacing:.07em}
+.r b{font:800 36px/1.05 var(--font-display);color:var(--silk);letter-spacing:.01em}
+.r b.hot{color:var(--hot)} .r b.ok{color:var(--ok)} .r b.cu{color:var(--copper-hi)}
+.msg{font:500 18px/1.45 var(--font-mono);color:var(--silk-dim)}
+.msg b{color:var(--silk)} .msg .hot{color:var(--hot)} .msg .ok{color:var(--ok)}
+.card{flex:1;border:2px solid rgba(238,242,234,.14);border-radius:8px;padding:12px 16px;font-size:19px;line-height:1.42;color:#d9e7de;height:178px;overflow:hidden}
+.card h4{font:800 28px/1.1 var(--font-display);text-transform:uppercase;color:var(--copper-hi);margin-bottom:4px;letter-spacing:.02em}
+.card .g{font:500 15px var(--font-mono);color:var(--silk-dim);text-transform:uppercase;letter-spacing:.08em}
+.bar{height:16px;border-radius:3px;background:rgba(255,255,255,.08);position:relative;overflow:visible;width:300px}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--copper);transition:width .25s}
+.bar i.hot{background:var(--hot)}
+.bar .lim{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--silk)}
+.barrow{display:grid;grid-template-columns:96px 300px 90px;align-items:center;gap:12px;font:500 17px var(--font-mono);color:var(--silk-dim)}
+.barrow span:last-child{color:var(--silk);text-align:right}
+
+/* ===========================================
+   SCHEMATIC SVG STYLES
+   Wires are copper; components are silkscreen; .flow is animated current.
+   =========================================== */
+.sch{color:var(--silk);overflow:visible}
+.sch .w{stroke:var(--copper);stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.sch .c{stroke:var(--silk);stroke-width:3;fill:none;color:var(--silk);transition:color .2s,stroke .2s,opacity .25s}
+.sch text{font:500 19px var(--font-mono);fill:var(--silk);stroke:none}
+.sch text.s{font-size:16px;fill:var(--silk-dim)}
+.sch text.v{fill:var(--copper-hi)}
+.sch text.big{font:800 40px var(--font-display);fill:var(--silk)}
+.sch .dot{fill:var(--copper)}
+.sch .pad{fill:var(--tin)}
+.sch .hit{fill:transparent;stroke:none;cursor:pointer;transition:fill .15s}
+.sch .hit:hover{fill:rgba(255,196,143,.10)}
+.sch .hl{color:var(--copper-hi)!important;stroke:var(--copper-hi)!important;filter:drop-shadow(0 0 7px rgba(255,196,143,.75))}
+.sch text.hl{fill:var(--copper-hi)!important;stroke:none!important}
+.sch .hotc{color:var(--hot)!important;stroke:var(--hot)!important;filter:drop-shadow(0 0 8px rgba(255,106,85,.8))}
+.sch .dim{opacity:.3}
+.sch .box{fill:rgba(0,0,0,.25);stroke:var(--silk);stroke-width:3}
+.sch .ext{fill:none;stroke:var(--silk-dim);stroke-width:2.5;stroke-dasharray:8 6}
+.flow{fill:none;stroke:var(--copper-hi);stroke-width:7;stroke-linecap:round;stroke-dasharray:2 24;animation:flow 1s linear infinite;opacity:0;transition:opacity .3s;filter:drop-shadow(0 0 5px rgba(255,196,143,.85));pointer-events:none}
+.flow.cool{stroke:var(--cool);filter:drop-shadow(0 0 5px rgba(127,211,255,.85))}
+.flow.hotf{stroke:var(--hot);filter:drop-shadow(0 0 5px rgba(255,106,85,.85))}
+@keyframes flow{to{stroke-dashoffset:-26}}
+.slide:not(.active) .flow{animation-play-state:paused}
+
+/* ===========================================
+   TITLE SLIDE
+   =========================================== */
+.t-ref{position:absolute;left:96px;top:84px;font:500 22px var(--font-mono);color:var(--silk-dim);letter-spacing:.12em}
+.t-ref span{border:2px solid var(--silk-dim);padding:4px 12px;margin-right:16px;color:var(--silk)}
+.t-h1{position:absolute;left:92px;top:168px;width:1000px;font:800 168px/.88 var(--font-display);text-transform:uppercase}
+.t-h1 em{font-style:normal;color:var(--copper)}
+.t-sub{position:absolute;left:98px;top:620px;width:800px;font-size:29px;line-height:1.5;color:#cfe0d6}
+.t-rails{position:absolute;left:98px;top:800px;display:flex;gap:22px}
+.t-rail{border:2px solid var(--copper);border-radius:6px;padding:14px 22px;font:500 22px var(--font-mono);color:var(--copper-hi)}
+.t-rail b{display:block;font:800 40px var(--font-display);color:var(--silk)}
+.t-board{position:absolute;right:70px;top:120px;width:760px;height:840px}
+.tr{stroke:var(--copper);stroke-width:7;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px rgba(217,144,90,.35))}
+.silk{stroke:var(--silk);stroke-width:2.5;fill:none}
+.lbl{font:500 20px var(--font-mono);fill:var(--silk)}
+.e{fill:var(--copper-hi);filter:drop-shadow(0 0 8px var(--copper-hi))}
+.t-foot{position:absolute;left:98px;right:70px;bottom:56px;display:flex;justify-content:space-between;font:400 19px var(--font-mono);color:var(--silk-dim)}
+.t-foot a{color:var(--copper-hi)}
+
+/* ===========================================
+   QUIZ SLIDES
+   =========================================== */
+.qgrid{position:absolute;left:80px;right:80px;top:250px;bottom:80px;display:grid;grid-template-columns:repeat(3,1fr);gap:36px}
+.q{border:2px solid rgba(238,242,234,.16);border-radius:12px;padding:28px;background:rgba(3,20,15,.38);display:flex;flex-direction:column;gap:14px}
+.q .qn{font:500 18px var(--font-mono);color:var(--copper);letter-spacing:.1em}
+.q p.qt{font-size:25px;line-height:1.4;color:var(--silk);min-height:140px}
+.opt{font:500 21px/1.35 var(--font-body);text-align:left;color:var(--silk);background:rgba(0,0,0,.2);border:2px solid rgba(238,242,234,.25);border-radius:8px;padding:14px 18px;cursor:pointer;min-height:58px;transition:border-color .2s,background .2s}
+.opt:hover{border-color:var(--copper)}
+.opt.right{border-color:var(--ok);background:rgba(155,229,155,.14)}
+.opt.wrong{border-color:var(--hot);background:rgba(255,106,85,.13)}
+.opt:disabled{cursor:default}
+.ex{font-size:20px;line-height:1.45;color:#cfe0d6;opacity:0;transition:opacity .3s;margin-top:auto;border-top:2px dashed rgba(238,242,234,.15);padding-top:12px}
+.ex.show{opacity:1}
+.ex b{color:var(--ok)}
+
+/* ===========================================
+   RECAP SLIDE
+   =========================================== */
+.recap{position:absolute;left:80px;top:250px;width:930px;bottom:80px;display:flex;flex-direction:column;gap:20px}
+.rc{display:grid;grid-template-columns:64px 1fr;gap:18px;align-items:start;font-size:25px;line-height:1.42;color:#e2ece5}
+.rc span{font:800 44px/1 var(--font-display);color:var(--copper)}
+.srcs{position:absolute;left:1090px;right:80px;top:250px;bottom:80px;border:2px solid rgba(238,242,234,.16);border-radius:12px;padding:30px;background:rgba(3,20,15,.38);display:flex;flex-direction:column;gap:18px}
+.srcs h3{font:800 36px var(--font-display);text-transform:uppercase;color:var(--copper-hi)}
+.srcs a{color:var(--copper-hi);text-decoration:none;font-weight:600}
+.srcs p{font-size:20px;line-height:1.45;color:#cfe0d6}
+
+/* ===========================================
+   DECK CHROME (outside the stage): progress, counter, edit toggle
+   =========================================== */
+#progress{position:fixed;left:0;top:0;height:4px;background:var(--copper);z-index:1000;transition:width .3s}
+#counter{position:fixed;right:18px;bottom:14px;font:500 14px var(--font-mono);color:var(--silk-dim);z-index:1000}
+.edit-hotzone{position:fixed;top:0;left:0;width:80px;height:80px;z-index:10000;cursor:pointer}
+.edit-toggle{position:fixed;top:16px;left:16px;z-index:10001;font:500 14px var(--font-mono);background:var(--copper);color:var(--mask-deep);border:0;border-radius:6px;padding:8px 12px;opacity:0;pointer-events:none;transition:opacity .3s;cursor:pointer}
+.edit-toggle.show,.edit-toggle.active{opacity:1;pointer-events:auto}
+body.editing [data-editable]{outline:2px dashed rgba(255,196,143,.6);outline-offset:4px}
+</style>
+</head>
+<body>
+
+<!-- ===========================================
+     SHARED SCHEMATIC SYMBOLS (used via <use href="#s-…">)
+     Each symbol is drawn from its left terminal at (0,0) along +x.
+     =========================================== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <symbol id="s-res" overflow="visible"><path d="M0 0h15l5-11 10 22 10-22 10 22 10-22 10 22 5-11h15"/></symbol>
+  <symbol id="s-cap" overflow="visible"><path d="M0 0h39M39-20v40M51-20v40M51 0h39"/></symbol>
+  <symbol id="s-zen" overflow="visible"><path d="M0 0h30M60 0h30M30-15v30l30-15zM54-19l6 4v30l6 4"/></symbol>
+  <symbol id="s-npn" overflow="visible"><path d="M0 0h24M24-22v44M24-9L50-30V-50M24 9L50 30V50"/><path d="M50 30l-14-1 6-9z" fill="currentColor"/></symbol>
+  <symbol id="s-opa" overflow="visible"><path d="M0-55V55L95 0z"/><path d="M-20-28h20M-20 28h20"/><path d="M8-28h14M8 28h14M15 21v14" stroke-width="2.5"/></symbol>
+  <symbol id="s-gnd" overflow="visible"><path d="M-18 0h36M-11 8h22M-4 16h8"/></symbol>
+  <symbol id="s-ntc" overflow="visible"><path d="M0 0h20M70 0h20"/><rect x="20" y="-11" width="50" height="22"/><path d="M10 20l58-38M10 20h-10" stroke-width="2.5"/></symbol>
+  <symbol id="s-brg" overflow="visible">
+    <rect x="0" y="-70" width="140" height="140" rx="10"/>
+    <path d="M70-48L118 0 70 48 22 0z" stroke-width="2.5"/>
+    <g transform="translate(46,-24) rotate(-45)"><path d="M-7-8v16l14-8zM7-8v16" stroke-width="2.5"/></g>
+    <g transform="translate(94,-24) rotate(45)"><path d="M-7-8v16l14-8zM7-8v16" stroke-width="2.5"/></g>
+    <g transform="translate(46,24) rotate(45)"><path d="M-7-8v16l14-8zM7-8v16" stroke-width="2.5"/></g>
+    <g transform="translate(94,24) rotate(-45)"><path d="M-7-8v16l14-8zM7-8v16" stroke-width="2.5"/></g>
+    <path d="M-20-30h20M-20 30h20M140-40h20M140 40h20"/>
+  </symbol>
+  <symbol id="s-src" overflow="visible"><circle cx="0" cy="0" r="34"/><path d="M-20 0q10-20 20 0t20 0" stroke-width="2.5"/></symbol>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="#eef2ea"/></marker>
+</defs>
+</svg>
+
+<div class="deck-viewport"><main class="deck-stage" id="deckStage">
+
+<!-- ===========================================
+     SLIDE 1: TITLE
+     =========================================== -->
+<section class="slide title-slide">
+  <div class="t-ref reveal"><span>W1 L1.6</span>PSU-3 REV A · 230 V IN</div>
+  <h1 class="t-h1 reveal d1" data-editable>One transformer, <em>three rails</em></h1>
+  <p class="t-sub reveal d2" data-editable>A worked example of a linear power supply: windings, the discrete 15 V regulator, its heat budget, an LM317, a 7805, and how to test them all.</p>
+  <div class="t-rails reveal d3">
+    <div class="t-rail"><b>15 V</b>Q1 + op-amp</div><div class="t-rail"><b>15 V</b>LM317</div><div class="t-rail"><b>5 V</b>7805</div>
+  </div>
+  <svg class="t-board reveal d2" viewBox="0 0 760 840">
+    <rect class="silk" x="40" y="60" width="180" height="260" rx="8"/><text class="lbl" x="58" y="350">T1 12-0-12</text>
+    <rect class="silk" x="290" y="120" width="140" height="140" rx="6" transform="rotate(45 360 190)"/><text class="lbl" x="318" y="320">BR1</text>
+    <circle class="silk" cx="560" cy="190" r="60"/><text class="lbl" x="632" y="270">C1</text><text class="lbl" x="632" y="296">4700µ</text>
+    <rect class="silk" x="470" y="470" width="220" height="110" rx="6"/><text class="lbl" x="530" y="532">U1 LM317</text>
+    <rect class="silk" x="70" y="470" width="220" height="110" rx="6"/><text class="lbl" x="128" y="532">Q1 TIP41</text>
+    <path class="tr" d="M220 120 H300 L330 150 M220 260 H300 L330 230"/>
+    <path class="tr" d="M430 190 H500 M560 250 V380 H180 V470 M560 380 H580 V470"/>
+    <path class="tr" d="M180 580 V700 H700 M580 580 V700"/>
+    <circle class="pad" cx="220" cy="120" r="12" fill="#c9d1cf"/><circle cx="220" cy="260" r="12" fill="#c9d1cf"/>
+    <circle cx="430" cy="190" r="12" fill="#c9d1cf"/><circle cx="560" cy="380" r="10" fill="#c9d1cf"/>
+    <circle cx="700" cy="700" r="16" fill="#c9d1cf"/><text class="lbl" x="640" y="760">+15 V OUT</text>
+    <circle class="e" r="8"><animateMotion dur="3s" repeatCount="indefinite" path="M430 190 H560 V380 H180 V700 H700"/></circle>
+    <circle class="e" r="8"><animateMotion dur="3s" begin="1.5s" repeatCount="indefinite" path="M430 190 H560 V380 H580 V700 H700"/></circle>
+  </svg>
+  <div class="t-foot reveal d4"><span>IIT Madras · BS in Electronic Systems · <a href="https://www.youtube.com/watch?v=uUPryFq32oY" target="_blank" rel="noopener">▶ youtube.com/watch?v=uUPryFq32oY</a> · 24 min</span><span>→ / space to advance</span></div>
+</section>
+
+<!-- ===========================================
+     SLIDE 2: CONCEPT 1, THE PROJECT (block schematic with MCB + rail picker)
+     =========================================== -->
+<section class="slide" data-widget="proj">
+  <header class="hd reveal"><div class="tag"><span>01</span>The brief · 00:32</div><h2 data-editable>One transformer, <em>three regulated rails</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>Take power from the 230 V mains through a switch or MCB into a 50 Hz, laminated step-down transformer with three secondaries. Each secondary feeds its own chain, and each chain ends in a regulator.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li>Every chain: <b>NTC thermistor → full bridge → capacitor → regulator → load</b></li>
+      <li class="k">Rail 1: <b>15 V, discrete</b> (series-pass Q1, op-amp, foldback limit)</li>
+      <li class="k">Rail 2: <b>15 V, LM317</b> (adjustable IC regulator)</li>
+      <li class="k">Rail 3: <b>5 V, 7805</b> (fixed IC regulator)</li>
+    </ul>
+    <div class="eq reveal d3"><span class="tex">\underbrace{V_{\mathrm{C}}}_{\text{unregulated}} \;\longrightarrow\; \boxed{\text{regulator}} \;\longrightarrow\; \underbrace{V_0}_{\text{steady}}</span></div>
+    <p class="try reveal d3"><b>Try:</b> click the MCB to switch on, then pick a rail to trace its chain.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=32s" target="_blank" rel="noopener">▶ Watch 00:32</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560">
+      <!-- mains source and MCB -->
+      <use href="#s-src" class="c" transform="translate(60,280)"/>
+      <text x="80" y="352">230 V~</text>
+      <path class="w" d="M60 246 V150 H120 M172 150 H230 V190 M230 370 V410 H60 V314"/>
+      <circle class="pad" cx="120" cy="150" r="7"/><circle class="pad" cx="172" cy="150" r="7"/>
+      <line id="mcbLever" class="c" x1="120" y1="150" x2="162" y2="122" style="stroke-width:5"/>
+      <text x="118" y="112" class="s">MCB</text>
+      <rect class="hit" id="mcbHit" x="100" y="96" width="92" height="76" rx="8"/>
+      <!-- primary, core -->
+      <path class="c" d="M230 190 q28 22.5 0 45 q28 22.5 0 45 q28 22.5 0 45 q28 22.5 0 45"/>
+      <path class="c" d="M276 30 V530 M286 30 V530"/>
+      <!-- three chains (built by JS from a template below) -->
+      <g id="chains"></g>
+      <path id="flP" class="flow" d="M60 246 V150 H230 V190"/>
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <button class="btn" id="mcbBtn">⏻ Switch ON</button>
+        <div class="btns" id="railBtns">
+          <button class="btn on" data-i="0">Rail 1</button><button class="btn" data-i="1">Rail 2</button><button class="btn" data-i="2">Rail 3</button>
+        </div>
+      </div>
+      <div class="card" id="projCard"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 3: CONCEPT 2, THE LAB TRANSFORMER (probe any two lugs)
+     =========================================== -->
+<section class="slide" data-widget="xfmr">
+  <header class="hd reveal"><div class="tag"><span>02</span>The lab transformer · 02:14</div><h2 data-editable>Inside the <em>laboratory transformer</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>EI laminations, a varnished wound coil and terminal lugs on top. The red and black lugs are the 0–230 V primary. There are three centre-tapped secondaries: 12-0-12, 15-0-15 and 9-0-9 V rms.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li>End to end gives double: <b>24, 30 or 18 V rms</b></li>
+      <li>End to centre gives the single value: <b>12, 15 or 9 V rms</b></li>
+      <li>The centre tap lets you build a centre-tapped rectifier; otherwise use the two ends</li>
+      <li>The windings are isolated from each other, so each rail gets its own ground</li>
+    </ul>
+    <div class="eq reveal d3"><span class="tex">V_{\mathrm{peak}} = \sqrt{2}\,V_{\mathrm{rms}}</span><span class="tex">V_{\mathrm{C}} \approx V_{\mathrm{peak}} - 2V_{\mathrm{D}} \qquad (V_{\mathrm{D}} \approx 0.7\,\mathrm{V})</span></div>
+    <p class="try reveal d3"><b>Try:</b> click any two lugs to probe them with the meter.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=134s" target="_blank" rel="noopener">▶ Watch 02:14</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560" id="xfSvg">
+      <!-- primary -->
+      <path class="w" d="M86 200 H200 V170 M86 360 H200 V390"/>
+      <path class="c" d="M200 170 q30 27.5 0 55 q30 27.5 0 55 q30 27.5 0 55 q30 27.5 0 55"/>
+      <circle class="lug" data-w="p" data-p="0" cx="70" cy="200" r="16" fill="#c0392b" stroke="#eef2ea" stroke-width="3"/>
+      <circle class="lug" data-w="p" data-p="2" cx="70" cy="360" r="16" fill="#151515" stroke="#eef2ea" stroke-width="3"/>
+      <text x="30" y="160">230 V</text><text x="52" y="410">0</text>
+      <path class="c" d="M250 30 V530 M262 30 V530"/>
+      <g id="secs"></g>
+      <!-- probe leads -->
+      <path id="prA" class="w" d="" style="stroke:#ff6a55;stroke-width:4"/>
+      <path id="prB" class="w" d="" style="stroke:#c9d1cf;stroke-width:4"/>
+      <!-- meter -->
+      <rect x="770" y="150" width="310" height="240" rx="20" class="box"/>
+      <rect x="800" y="180" width="250" height="110" rx="6" fill="#0c1a14" stroke="#9fb8ac" stroke-width="2"/>
+      <text id="mV" x="1032" y="262" text-anchor="end" class="big" style="font-size:66px;fill:#9be59b">— — </text>
+      <text x="805" y="330" class="s">AC VOLTS (rms)</text>
+      <path class="c" d="M850 390 V414 M1000 390 V414"/>
+      <circle cx="850" cy="430" r="15" fill="#ff6a55"/><circle cx="1000" cy="430" r="15" fill="#c9d1cf"/>
+      <text x="828" y="476" class="s">PROBE A</text><text x="972" y="476" class="s">PROBE B</text>
+    </svg>
+    <div class="ctl">
+      <div class="ros" style="grid-template-columns:repeat(3,150px)">
+        <div class="r"><small>V rms</small><b id="xVr">—</b></div>
+        <div class="r"><small>V peak</small><b id="xVp" class="cu">—</b></div>
+        <div class="r"><small>V_C after bridge</small><b id="xVc">—</b></div>
+      </div>
+      <div class="card" id="xMsg"><h4>Pick two lugs</h4>Click a lug for probe A, then another for probe B. Try both ends of one winding, then an end and its centre tap.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 4: CONCEPT 3, THE FULL DISCRETE REGULATOR (clickable parts + loop trace)
+     =========================================== -->
+<section class="slide" data-widget="disc">
+  <header class="hd reveal"><div class="tag"><span>03</span>Rail 1 · 04:56</div><h2 data-editable>The discrete regulator, <em>all together</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>Every block from this week in one schematic. The op-amp compares aV₀ with V_ref and drives Q1's base through R5 until the two are equal.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li class="k"><b>Pass element:</b> Q1 carries the load current</li>
+      <li class="k"><b>Reference:</b> R3 + zener, pot R4 taps off V_ref</li>
+      <li class="k"><b>Feedback:</b> R1/R2 give aV₀; the op-amp is the error amplifier</li>
+      <li class="k"><b>Foldback limit:</b> R_S senses I₀; Q2 with R_A/R_B steals Q1's drive</li>
+      <li class="k"><b>Op-amp protection:</b> R5 limits the op-amp's output current</li>
+    </ul>
+    <div class="eq reveal d3"><span class="tex">V_0 = \dfrac{V_{\mathrm{ref}}}{a}, \qquad a = \dfrac{R_2}{R_1 + R_2}</span></div>
+    <p class="try reveal d3"><b>Try:</b> click any part, or step through the control loop.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=296s" target="_blank" rel="noopener">▶ Watch 04:56</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560" id="discSvg">
+      <!-- wires -->
+      <path class="w" d="M40 90 H440 M540 90 H575 M665 90 H1080 M40 90 V265 M40 355 V530 H1000 V340 M1000 90 V250
+        M110 90 V110 M110 200 V255 M110 345 V530 M110 240 H180 V300 M180 390 V530
+        M240 345 V358 H250 M365 330 H385 M475 330 H490 V140
+        M565 90 V110 M565 200 V330 M565 330 V380 M565 470 V485 M565 505 V530 M565 225 H605
+        M655 175 V140 H700 V90 M655 275 V330 H575 M555 330 H490
+        M900 90 V110 M900 200 V250 M900 340 V530 M900 225 H860 V495 H575 M555 495 H230 V302 H250"/>
+      <!-- hops where wires cross without joining -->
+      <path class="w" d="M575 330 A10 10 0 0 0 555 330 M575 495 A10 10 0 0 0 555 495"/>
+      <circle class="dot" cx="565" cy="90" r="7"/><circle class="dot" cx="700" cy="90" r="7"/><circle class="dot" cx="490" cy="330" r="7"/>
+      <circle class="dot" cx="565" cy="225" r="7"/><circle class="dot" cx="110" cy="240" r="7"/><circle class="dot" cx="900" cy="225" r="7"/>
+      <circle class="dot" cx="900" cy="90" r="6"/><circle class="dot" cx="1000" cy="90" r="6"/><circle class="dot" cx="110" cy="90" r="6"/>
+      <circle class="pad" cx="1080" cy="90" r="11"/>
+      <!-- components (data-k ties symbol, label and hit-box together) -->
+      <use href="#s-cap" class="c" data-k="C" transform="translate(40,265) rotate(90)"/>
+      <use href="#s-res" class="c" data-k="R3" transform="translate(110,110) rotate(90)"/>
+      <use href="#s-zen" class="c" data-k="DZ" transform="translate(110,345) rotate(-90)"/>
+      <use href="#s-res" class="c" data-k="R4" transform="translate(180,300) rotate(90)"/>
+      <path class="c" data-k="R4" d="M240 345 H198" marker-end="url(#arr)"/>
+      <use href="#s-opa" class="c" data-k="OA" transform="translate(270,330)"/>
+      <use href="#s-res" class="c" data-k="R5" transform="translate(385,330)"/>
+      <use href="#s-npn" class="c" data-k="Q1" transform="translate(490,140) rotate(-90)"/>
+      <use href="#s-res" class="c" data-k="RS" transform="translate(575,90)"/>
+      <use href="#s-res" class="c" data-k="RA" transform="translate(565,110) rotate(90)"/>
+      <use href="#s-res" class="c" data-k="RB" transform="translate(565,380) rotate(90)"/>
+      <use href="#s-npn" class="c" data-k="Q2" transform="translate(605,225) scale(1,-1)"/>
+      <use href="#s-res" class="c" data-k="R1" transform="translate(900,110) rotate(90)"/>
+      <use href="#s-res" class="c" data-k="R2" transform="translate(900,250) rotate(90)"/>
+      <use href="#s-res" class="c" data-k="R0" transform="translate(1000,250) rotate(90)"/>
+      <use href="#s-gnd" class="c" transform="translate(1040,530)"/>
+      <path class="w" d="M1000 530 H1040"/>
+      <!-- labels -->
+      <text x="48" y="76" class="v">V_C</text><text x="56" y="318" data-k="C">C</text>
+      <text x="124" y="160" data-k="R3">R3</text><text x="126" y="305" data-k="DZ">D_Z</text>
+      <text x="194" y="430" data-k="R4">R4</text><text x="238" y="408" class="s">V_ref</text>
+      <text x="300" y="262" data-k="OA" class="s">error amp</text>
+      <text x="408" y="312" data-k="R5">R5</text>
+      <text x="474" y="66" data-k="Q1">Q1</text>
+      <text x="598" y="66" data-k="RS">R_S</text>
+      <text x="520" y="162" data-k="RA">R_A</text><text x="520" y="432" data-k="RB">R_B</text>
+      <text x="668" y="236" data-k="Q2">Q2</text>
+      <text x="916" y="160" data-k="R1">R1</text><text x="916" y="300" data-k="R2">R2</text><text x="790" y="215" class="v">aV₀</text>
+      <text x="1016" y="300" data-k="R0">R₀</text><text x="1040" y="66" class="v">V₀</text>
+      <text x="586" y="128" class="s">V₀+I₀R_S</text>
+      <!-- loop-trace flows -->
+      <path id="lp1" class="flow" d="M240 345 V358 H270"/>
+      <path id="lp2" class="flow" d="M365 330 H490 V140"/>
+      <path id="lp3" class="flow" d="M440 90 H1000 V250"/>
+      <path id="lp4" class="flow cool" d="M900 90 V225 H860 V495 H230 V302 H270"/>
+      <!-- hit boxes -->
+      <rect class="hit" data-k="C" x="16" y="250" width="56" height="120"/>
+      <rect class="hit" data-k="R3" x="88" y="104" width="50" height="104"/>
+      <rect class="hit" data-k="DZ" x="88" y="250" width="70" height="100"/>
+      <rect class="hit" data-k="R4" x="160" y="295" width="88" height="140"/>
+      <rect class="hit" data-k="OA" x="262" y="268" width="110" height="124"/>
+      <rect class="hit" data-k="R5" x="380" y="300" width="100" height="46"/>
+      <rect class="hit" data-k="Q1" x="430" y="50" width="120" height="100"/>
+      <rect class="hit" data-k="RS" x="570" y="46" width="100" height="56"/>
+      <rect class="hit" data-k="RA" x="510" y="104" width="80" height="104"/>
+      <rect class="hit" data-k="RB" x="510" y="374" width="80" height="104"/>
+      <rect class="hit" data-k="Q2" x="600" y="168" width="96" height="114"/>
+      <rect class="hit" data-k="R1" x="880" y="104" width="66" height="104"/>
+      <rect class="hit" data-k="R2" x="880" y="244" width="66" height="104"/>
+      <rect class="hit" data-k="R0" x="980" y="244" width="66" height="104"/>
+    </svg>
+    <div class="ctl">
+      <div class="col" style="width:330px">
+        <div class="btns"><button class="btn" id="lpPrev">◀</button><button class="btn" id="lpNext">Trace the loop ▶</button></div>
+        <div class="msg" id="lpTxt">Step 0 / 4: press ▶ to follow the signal around the loop.</div>
+      </div>
+      <div class="card" id="discCard"><h4>Click a component</h4><span class="g">Hover shows what's clickable</span><br>Each part lights up with the rest of its functional group.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 5: CONCEPT 4, UNREGULATED WINDOW AND Q1 DISSIPATION
+     =========================================== -->
+<section class="slide" data-widget="win">
+  <header class="hd reveal"><div class="tag"><span>04</span>Q1's heat budget · 07:51</div><h2 data-editable>The unregulated window <em>heats Q1</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>The 12-0-12 winding used end to end gives 24 V rms, about 34 V peak. With mains at 230 V ± 20 %, V_C swings from about 27 V to about 40 V, while the output stays at 15 V, 1 A (15 W).</p>
+    <ul class="pts reveal d2" data-editable>
+      <li>V_CE = V_C − 15 V, from <b>12 V to 25 V</b></li>
+      <li>P_Q1 = V_CE · I₀, from <b>12 W to 25 W</b></li>
+      <li>The front end must supply 15 W + P_Q1, <b>up to 40 W</b></li>
+    </ul>
+    <p class="note reveal d2" data-editable><b>Correction:</b> the lecture says 35 V, 35 W and 50 W, but 40 − 15 = 25 V, which gives 25 W and 40 W. The lesson still holds: design for the high-mains corner.</p>
+    <div class="eq reveal d3"><span class="tex">P_{\mathrm{Q1}} = (V_{\mathrm{C}} - V_0)\,I_0 \qquad \eta = \dfrac{V_0}{V_{\mathrm{C}}}</span></div>
+    <p class="try reveal d3"><b>Try:</b> drag mains to +20 % and watch Q1 heat up.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=471s" target="_blank" rel="noopener">▶ Watch 07:51</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560">
+      <defs><radialGradient id="glow"><stop offset="0" stop-color="#ff6a55" stop-opacity=".9"/><stop offset="1" stop-color="#ff6a55" stop-opacity="0"/></radialGradient></defs>
+      <circle id="q1glow" cx="720" cy="120" r="95" fill="url(#glow)" opacity="0"/>
+      <use href="#s-src" class="c" transform="translate(70,260)"/>
+      <text id="wMains" x="90" y="330" class="v">230 V</text>
+      <path class="w" d="M70 226 V150 H160 V170 M160 350 V370 H70 V294"/>
+      <path class="c" d="M160 170 q28 22.5 0 45 q28 22.5 0 45 q28 22.5 0 45 q28 22.5 0 45"/>
+      <path class="c" d="M206 150 V370 M216 150 V370"/>
+      <path class="c" d="M262 170 q-28 22.5 0 45 q-28 22.5 0 45 q-28 22.5 0 45 q-28 22.5 0 45"/>
+      <text x="212" y="410" class="s">24 V rms</text>
+      <path class="w" d="M262 170 H310 V237.5 H335 M262 350 H310 V282.5 H335"/>
+      <use href="#s-brg" class="c" transform="translate(350,260) scale(.75)"/>
+      <path class="w" d="M470 230 H500 V110 H670 M470 290 H500 V470 H980 M770 110 H1080 M560 110 V245 M560 335 V470 M980 110 V245 M980 335 V470 M720 160 V196"/>
+      <use href="#s-cap" class="c" transform="translate(560,245) rotate(90)"/>
+      <use href="#s-npn" class="c" id="wQ1" transform="translate(720,160) rotate(-90)"/>
+      <use href="#s-res" class="c" transform="translate(980,245) rotate(90)"/>
+      <use href="#s-gnd" class="c" transform="translate(760,470)"/>
+      <circle class="dot" cx="560" cy="110" r="7"/><circle class="dot" cx="980" cy="110" r="7"/><circle class="pad" cx="1080" cy="110" r="11"/>
+      <path d="M672 60 H768" stroke="#eef2ea" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+      <text id="wVce" x="720" y="44" text-anchor="middle" class="v">V_CE = 19.0 V</text>
+      <text x="704" y="222" class="s">drive</text><text x="704" y="252">Q1</text>
+      <text id="wVc" x="514" y="98" class="v" text-anchor="end">V_C 33.9 V</text>
+      <text x="578" y="300">C</text>
+      <text x="996" y="296">R₀</text>
+      <text x="852" y="98" class="v">V₀ = 15 V</text>
+      <text id="wI" x="840" y="148">I₀ = 1.00 A</text>
+      <path id="wFl" class="flow" d="M500 110 H980 V470 H500"/>
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <div class="field"><label>Mains tolerance <output id="oTol">0 %</output></label><input type="range" id="sTol" min="-20" max="20" step="1" value="0"></div>
+        <div class="field"><label>Load current I₀ <output id="oI">1.00 A</output></label><input type="range" id="sI" min="0" max="1" step="0.05" value="1"></div>
+      </div>
+      <div class="col" style="gap:14px;margin-top:8px">
+        <div class="barrow"><span>P_out</span><div class="bar"><i id="bOut"></i></div><span id="vOut">15 W</span></div>
+        <div class="barrow"><span>P_Q1</span><div class="bar"><i id="bQ" class="hot"></i></div><span id="vQ">19 W</span></div>
+        <div class="barrow"><span>P_in</span><div class="bar"><i id="bIn"></i></div><span id="vIn">34 W</span></div>
+        <div class="msg">Bars scale to 45 W · η = <b id="vEta">44 %</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 6: CONCEPT 5, HEAT SINK AS A THERMAL CIRCUIT
+     =========================================== -->
+<section class="slide" data-widget="therm">
+  <header class="hd reveal"><div class="tag"><span>05</span>Heat sink design · 09:11</div><h2 data-editable>Sizing Q1's heat sink: <em>a thermal circuit</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>T_J must stay below T_J,max = 150 °C. Heat flows through thermal resistances in series, the same way current flows through resistors: power acts like current, temperature like voltage.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li><b>θ_JC</b>: junction → case (from the datasheet)</li>
+      <li><b>θ_CS</b>: case → sink (insulating pad, thermal grease)</li>
+      <li><b>θ_SA</b>: sink → air (the heat sink you buy)</li>
+      <li>On its own a package's θ_JA is tens of °C/W (LM317 TO-263 ≈ 38 °C/W). At these wattages you need a heat sink.</li>
+    </ul>
+    <div class="eq reveal d3"><span class="tex">T_{\mathrm{J}} = T_{\mathrm{A}} + P_{\mathrm{D}}\,(\theta_{\mathrm{JC}} + \theta_{\mathrm{CS}} + \theta_{\mathrm{SA}})</span><span class="tex">\theta_{\mathrm{SA}} \le \dfrac{T_{\mathrm{J,max}} - T_{\mathrm{A}}}{P_{\mathrm{D}}} - \theta_{\mathrm{JC}} - \theta_{\mathrm{CS}}</span></div>
+    <p class="try reveal d3"><b>Try:</b> load the 25 W worst case and find the largest θ_SA that keeps T_J under 150 °C.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=551s" target="_blank" rel="noopener">▶ Watch 09:11</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560">
+      <path class="w" d="M180 200 H265 M355 200 H525 M615 200 H785 M875 200 H960 V286 M960 354 V440 H180 V356 M180 284 V200"/>
+      <use href="#s-res" class="c" id="thR1" transform="translate(265,200)"/>
+      <use href="#s-res" class="c" id="thR2" transform="translate(525,200)"/>
+      <use href="#s-res" class="c" id="thR3" transform="translate(785,200)"/>
+      <circle cx="180" cy="320" r="36" class="c"/><path d="M180 342 V298" stroke="#eef2ea" stroke-width="3" marker-end="url(#arr)"/>
+      <circle cx="960" cy="320" r="34" class="c"/><text x="944" y="314" class="s">+</text><text x="946" y="340" class="s">−</text>
+      <use href="#s-gnd" class="c" transform="translate(570,440)"/>
+      <text x="64" y="316" class="v">P_D</text><text id="thP" x="44" y="342" class="v">25 W</text>
+      <text x="1004" y="316">T_A</text><text id="thTAl" x="1004" y="342" class="v">40 °C</text>
+      <text x="310" y="248" text-anchor="middle">θ_JC 1.5</text><text x="570" y="248" text-anchor="middle">θ_CS 0.5</text><text id="thSAl" x="830" y="248" text-anchor="middle">θ_SA 3.0</text>
+      <circle id="nJ" cx="180" cy="200" r="15"/><circle id="nC" cx="440" cy="200" r="15"/><circle id="nS" cx="700" cy="200" r="15"/><circle id="nA" cx="960" cy="200" r="15"/>
+      <text id="tJ" x="180" y="172" text-anchor="middle" class="big" style="font-size:34px">T_J</text>
+      <text id="tC" x="440" y="172" text-anchor="middle" class="big" style="font-size:34px">T_C</text>
+      <text id="tS" x="700" y="172" text-anchor="middle" class="big" style="font-size:34px">T_S</text>
+      <text x="180" y="290" text-anchor="middle" class="s"></text>
+      <text x="152" y="120" class="s">junction</text><text x="418" y="120" class="s">case</text><text x="680" y="120" class="s">sink</text><text x="935" y="120" class="s">air</text>
+      <text x="410" y="490" class="s">0 °C reference (like ground)</text>
+      <path id="thFl" class="flow hotf" d="M180 284 V200 H960"/>
+      <!-- physical stack sketch -->
+      <g transform="translate(250,510)">
+        <rect x="0" y="0" width="60" height="22" rx="3" id="pJ"/><text x="70" y="17" class="s">die</text>
+        <rect x="120" y="-6" width="140" height="34" rx="4" id="pC"/><text x="270" y="17" class="s">case</text>
+        <rect x="330" y="-14" width="300" height="20" id="pS"/>
+        <g id="pFins"><rect x="340" y="6" width="12" height="40"/><rect x="380" y="6" width="12" height="40"/><rect x="420" y="6" width="12" height="40"/><rect x="460" y="6" width="12" height="40"/><rect x="500" y="6" width="12" height="40"/><rect x="540" y="6" width="12" height="40"/><rect x="580" y="6" width="12" height="40"/></g>
+        <text x="640" y="17" class="s">heat sink</text>
+      </g>
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <div class="field"><label>P_D <output id="oP">25 W</output></label><input type="range" id="sP" min="5" max="40" step="1" value="25"></div>
+        <div class="field"><label>Ambient T_A <output id="oTA">40 °C</output></label><input type="range" id="sTA" min="25" max="55" step="1" value="40"></div>
+      </div>
+      <div class="col">
+        <div class="field"><label>Heat sink θ_SA <output id="oSA">3.0 °C/W</output></label><input type="range" id="sSA" min="0.5" max="10" step="0.1" value="3"></div>
+        <div class="btns"><button class="btn" data-p="25">25 W (corrected)</button><button class="btn" data-p="35">35 W (lecture)</button></div>
+      </div>
+      <div class="ros" style="grid-template-columns:repeat(2,auto)">
+        <div class="r"><small>T_J</small><b id="rTJ">—</b></div>
+        <div class="r"><small>Largest θ_SA allowed</small><b id="rMax" class="cu">—</b></div>
+        <div class="r" style="grid-column:span 2"><small>Verdict</small><b id="rV" style="font-size:28px">—</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 7: CONCEPT 6, R5 PROTECTS THE OP-AMP
+     =========================================== -->
+<section class="slide" data-widget="r5">
+  <header class="hd reveal"><div class="tag"><span>06</span>Op-amp protection · 10:22</div><h2 data-editable>R5: <em>protecting the op-amp</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>An op-amp can source only 10–50 mA. The worst case is a shorted output: V₀ = 0, so Q1's base falls to I₀R_S + V_BE ≈ 1.2 V while Q2 sinks the drive. Almost the whole op-amp output voltage then sits across R5.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li>Draw at most <b>75 % of the rating</b>: 50 mA → about 35 mA; 20 mA → 15 mA</li>
+      <li>In normal operation R5 only carries Q1's base current, I₀/β ≈ 10 mA</li>
+      <li>Size R5 for V₀ = 0, not for normal operation</li>
+    </ul>
+    <div class="eq reveal d3"><span class="tex">R_5 \ge \dfrac{V_{\mathrm{OA}} - V_{\mathrm{B1}}}{0.75\,I_{\mathrm{rated}}} = \dfrac{(14 - 1.2)\,\mathrm{V}}{37.5\,\mathrm{mA}} \approx 340\,\Omega</span></div>
+    <p class="try reveal d3"><b>Try:</b> short the output, then shrink R5 until the op-amp overloads.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=622s" target="_blank" rel="noopener">▶ Watch 10:22</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560">
+      <path class="w" d="M380 100 H480 M580 100 H615 M705 100 H1060 V250 M1060 330 V480 H960 V340 M960 100 V250
+        M530 150 V330 H420 M295 330 H330 M605 100 V225 M655 175 V140 H740 V100 M655 275 V330 H530 M180 302 H200 M180 358 H200"/>
+      <use href="#s-opa" class="c" id="r5OA" transform="translate(200,330)"/>
+      <use href="#s-res" class="c" id="r5R" transform="translate(330,330)"/>
+      <use href="#s-npn" class="c" transform="translate(530,150) rotate(-90)"/>
+      <use href="#s-res" class="c" transform="translate(615,100)"/>
+      <use href="#s-npn" class="c" transform="translate(605,225) scale(1,-1)"/>
+      <use href="#s-res" class="c" transform="translate(960,250) rotate(90)"/>
+      <use href="#s-gnd" class="c" transform="translate(1010,480)"/>
+      <circle class="pad" cx="1060" cy="250" r="7"/><circle class="pad" cx="1060" cy="330" r="7"/>
+      <line id="swLever" x1="1060" y1="330" x2="1094" y2="262" class="c" style="stroke-width:5"/>
+      <rect class="hit" id="swHit" x="1030" y="236" width="86" height="110" rx="8"/>
+      <circle class="dot" cx="605" cy="100" r="7"/><circle class="dot" cx="740" cy="100" r="7"/><circle class="dot" cx="530" cy="330" r="7"/><circle class="dot" cx="960" cy="100" r="6"/>
+      <text x="380" y="86" class="v">V_C</text><text x="512" y="72">Q1</text><text x="640" y="72">R_S</text><text x="668" y="236">Q2</text>
+      <text x="976" y="300">R₀</text><text x="1000" y="220" class="s">short</text><text x="790" y="86" class="v">V₀</text>
+      <text x="40" y="308" class="s">from aV₀</text><text x="40" y="364" class="s">from V_ref</text>
+      <text x="196" y="252" class="s">op-amp, V_CC 15 V</text>
+      <text id="r5Lbl" x="336" y="300">R5 = 680 Ω</text>
+      <text id="r5I" x="300" y="380" class="v">I_R5 = 10.0 mA</text>
+      <text id="r5VB" x="544" y="372" class="s">V_B1 ≈ 16.1 V</text>
+      <path id="r5Drive" class="flow" d="M295 330 H530"/>
+      <path id="r5Base" class="flow" d="M530 330 V150"/>
+      <path id="r5Steal" class="flow hotf" d="M530 330 H655 V275 M655 175 V140 H740 V100"/>
+      <path id="r5LoadN" class="flow" d="M380 100 H960 V480"/>
+      <path id="r5LoadS" class="flow" d="M380 100 H1060 V480"/>
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <div class="field"><label>R5 <output id="oR5">680 Ω</output></label><input type="range" id="sR5" min="100" max="2000" step="10" value="680"></div>
+        <div class="btns" style="flex-wrap:nowrap"><span class="msg" style="align-self:center">op-amp:</span><button class="btn" data-r="20">20 mA</button><button class="btn on" data-r="50">50 mA</button></div>
+      </div>
+      <div class="col">
+        <button class="btn warn" id="r5Short">⚡ Short the output</button>
+        <div class="barrow" style="grid-template-columns:70px 300px 110px"><span>I_R5</span><div class="bar"><i id="r5Bar"></i><div class="lim" id="r5Lim"></div></div><span id="r5BarV">10 mA</span></div>
+        <div class="msg">white tick = 75 % of rating</div>
+      </div>
+      <div class="ros" style="grid-template-columns:repeat(2,auto)">
+        <div class="r"><small>75 % limit</small><b id="r5L" class="cu">37.5 mA</b></div>
+        <div class="r"><small>R5 minimum</small><b id="r5Min">341 Ω</b></div>
+        <div class="r" style="grid-column:span 2"><small>Op-amp</small><b id="r5St" style="font-size:28px">OK</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 8: CONCEPT 7, ZENER-FED OP-AMP SUPPLY
+     =========================================== -->
+<section class="slide" data-widget="zen">
+  <header class="hd reveal"><div class="tag"><span>07</span>Op-amp supply · 11:51</div><h2 data-editable>Powering the op-amp <em>from the raw rail</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>V_C swings from 27 to 40 V, but the op-amp needs a steady supply. Tap the unregulated rail with a series resistor and a zener (a shunt regulator), designed for around 25–30 mA.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li>Size R_Z at <b>low V_C and full load</b> so the zener keeps ≥ 5 mA</li>
+      <li>Check <b>high V_C and no load</b>, when all of I_R flows in the zener: P_Z = V_Z · I_R</li>
+      <li>15 V zener, R_Z = 820 Ω: I_R ≈ 15–30 mA, P_Z ≤ 0.46 W</li>
+    </ul>
+    <p class="gf reveal d2" data-editable><b>Going further:</b> to drive Q1's base to 15 + 0.5 + 0.6 ≈ 16.1 V, the op-amp's supply must sit a volt or two above that. The lecture's 15 V supply suits lower outputs. A 24 V zener works here, but it needs R_Z ≈ 200 Ω and dissipates more.</p>
+    <div class="eq reveal d3"><span class="tex">R_{\mathrm{Z}} = \dfrac{V_{\mathrm{C,min}} - V_{\mathrm{Z}}}{I_{\mathrm{op,max}} + I_{\mathrm{Z,min}}}</span></div>
+    <p class="try reveal d3"><b>Try:</b> sweep V_C from 27 to 40 V and watch I_Z absorb the change.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=711s" target="_blank" rel="noopener">▶ Watch 11:51</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560">
+      <path class="w" d="M140 240 V120 H300 M390 120 H820 V230 M560 120 V260 M560 350 V440 M820 330 V440 M140 320 V440 H820"/>
+      <circle cx="140" cy="280" r="40" class="c"/><text x="126" y="270" class="s">+</text><text x="128" y="306" class="s">−</text>
+      <use href="#s-res" class="c" transform="translate(300,120)"/>
+      <use href="#s-zen" class="c" id="zD" transform="translate(560,350) rotate(-90)"/>
+      <rect x="740" y="230" width="160" height="100" rx="10" class="box" id="zLoad"/>
+      <text x="768" y="276">op-amp</text><text x="768" y="304" class="s">(load)</text>
+      <use href="#s-gnd" class="c" transform="translate(470,440)"/>
+      <circle class="dot" cx="560" cy="120" r="7"/>
+      <text x="190" y="290" class="v" id="zVC">V_C 33.5 V</text>
+      <text x="300" y="92" id="zRZ">R_Z 820 Ω</text>
+      <text x="584" y="300" id="zVZl">D_Z 15 V</text>
+      <text x="600" y="96" class="v" id="zVcc">V_CC = 15 V</text>
+      <text x="380" y="168" class="v" id="zIR">I_R</text>
+      <text x="584" y="210" class="v" id="zIZ">I_Z</text>
+      <text x="836" y="190" class="v" id="zIop">I_op</text>
+      <path id="zfR" class="flow" d="M140 240 V120 H560"/>
+      <path id="zfZ" class="flow" d="M560 120 V440"/>
+      <path id="zfO" class="flow cool" d="M560 120 H820 V230"/>
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <div class="field"><label>V_C <output id="oVC">33.5 V</output></label><input type="range" id="sVC" min="27" max="40" step="0.5" value="33.5"></div>
+        <div class="field"><label>Op-amp current <output id="oIop">5.0 mA</output></label><input type="range" id="sIop" min="0" max="10" step="0.5" value="5"></div>
+      </div>
+      <div class="col">
+        <div class="btns"><span class="msg" style="align-self:center">zener:</span><button class="btn on" data-z="15">15 V</button><button class="btn" data-z="24">24 V</button></div>
+        <div class="msg" id="zDrive" style="width:300px"></div>
+      </div>
+      <div class="ros" style="grid-template-columns:repeat(2,auto)">
+        <div class="r"><small>I_R</small><b id="zrIR">—</b></div>
+        <div class="r"><small>I_Z</small><b id="zrIZ" class="cu">—</b></div>
+        <div class="r"><small>P_Z</small><b id="zrPZ">—</b></div>
+        <div class="r"><small>Status</small><b id="zrSt" style="font-size:26px">—</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 9: CONCEPT 8, LM317
+     =========================================== -->
+<section class="slide" data-widget="lm317">
+  <header class="hd reveal"><div class="tag"><span>08</span>Rail 2 · 12:51</div><h2 data-editable>LM317: <em>three pins, adjustable output</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>The pins are IN, OUT and ADJ. The LM317 holds 1.25 V between OUT and ADJ, so a current of 1.25/R1 flows through R1. ADJ draws only about 50 µA, so the same current also flows through R2.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li>About <b>1.5 A</b>, with internal current limiting and thermal shutdown</li>
+      <li>Needs <b>V_in − V₀ &gt; 3 V</b></li>
+      <li>P = (V_in − V₀) · I₀, so it needs a heat sink to keep T_J ≤ 150 °C</li>
+      <li>TI datasheet: R1 = 240 Ω is typical; θ_JA ≈ 38 °C/W (TO-263)</li>
+    </ul>
+    <div class="eq reveal d3"><span class="tex">V_0 = 1.25\,\mathrm{V}\left(1 + \dfrac{R_2}{R_1}\right) + I_{\mathrm{ADJ}}\,R_2</span></div>
+    <p class="try reveal d3"><b>Try:</b> set 15 V, then lower V_in until the regulator drops out.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=771s" target="_blank" rel="noopener">▶ Watch 12:51</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560">
+      <path class="w" d="M90 226 V140 H330 M530 140 H1060 M700 140 V170 M700 260 V320 M430 200 V290 H700 M700 410 V480 M960 140 V270 M960 360 V480 M90 294 V480 H960"/>
+      <use href="#s-src" class="c" transform="translate(90,260)"/>
+      <rect id="lmBox" x="330" y="90" width="200" height="110" rx="8" class="box"/>
+      <text x="430" y="176" text-anchor="middle" class="big" style="font-size:36px">LM317</text>
+      <text x="340" y="128" class="s">IN</text><text x="486" y="128" class="s">OUT</text><text x="444" y="194" class="s">ADJ</text>
+      <use href="#s-res" class="c" transform="translate(700,170) rotate(90)"/>
+      <use href="#s-res" class="c" transform="translate(700,320) rotate(90)"/>
+      <use href="#s-res" class="c" transform="translate(960,270) rotate(90)"/>
+      <use href="#s-gnd" class="c" transform="translate(520,480)"/>
+      <circle class="dot" cx="700" cy="140" r="7"/><circle class="dot" cx="700" cy="290" r="7"/><circle class="dot" cx="960" cy="140" r="7"/><circle class="pad" cx="1060" cy="140" r="11"/>
+      <path d="M640 146 V284" stroke="#9fb8ac" stroke-width="2" stroke-dasharray="6 5" marker-start="url(#arr)" marker-end="url(#arr)"/>
+      <text x="566" y="222" class="v">1.25 V</text>
+      <text id="lmR1" x="716" y="210">R1 240 Ω</text>
+      <text id="lmR2" x="716" y="362">R2 2640 Ω</text>
+      <text id="lmI" x="716" y="240" class="s">I = 5.21 mA</text>
+      <text x="444" y="276" class="s">I_ADJ ≈ 50 µA</text>
+      <text x="976" y="320">R_L 15 Ω</text>
+      <text id="lmVin" x="134" y="310" class="v">V_in 34 V</text>
+      <text id="lmV0" x="780" y="110" class="big">V₀ = 15.0 V</text>
+      <text id="lmDrop" x="340" y="70" class="v" style="fill:#ff6a55"></text>
+      <path id="lmFr" class="flow cool" d="M700 140 V480"/>
+      <path id="lmFl" class="flow" d="M90 226 V140 H330 M530 140 H960 V480"/>
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <div class="field"><label>R1 <output id="oR1">240 Ω</output></label><input type="range" id="sR1" min="100" max="1000" step="10" value="240"></div>
+        <div class="field"><label>R2 <output id="oR2">2640 Ω</output></label><input type="range" id="sR2" min="0" max="5000" step="10" value="2640"></div>
+      </div>
+      <div class="col">
+        <div class="field"><label>V_in <output id="oVin">34 V</output></label><input type="range" id="sVin" min="5" max="40" step="0.5" value="34"></div>
+        <div class="msg" id="lmMsg" style="width:250px"></div>
+      </div>
+      <div class="ros" style="grid-template-columns:repeat(2,auto)">
+        <div class="r"><small>1.25(1+R2/R1)</small><b id="lmA">—</b></div>
+        <div class="r"><small>+ I_ADJ·R2</small><b id="lmB" class="cu">—</b></div>
+        <div class="r"><small>Headroom</small><b id="lmH">—</b></div>
+        <div class="r"><small>P_reg</small><b id="lmP">—</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 10: CONCEPT 9, LM723 = DISCRETE CIRCUIT IN A CHIP
+     =========================================== -->
+<section class="slide" data-widget="lm723">
+  <header class="hd reveal"><div class="tag"><span>09</span>IC regulators · 14:50</div><h2 data-editable>LM723: <em>our circuit inside one chip</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>The LM723's internal schematic is the discrete regulator we built: a zener reference, an error amplifier, a series-pass transistor and a current-limit transistor. Its sense pins (CL, CS) are brought out, so you add your own R_S.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li><b>Inside the chip:</b> reference, error amp, series pass, current limiter</li>
+      <li><b>You add:</b> R_S, the output divider and, for more current, a boost transistor as a Darlington</li>
+      <li>The LM317 and 78xx go further: everything is inside, with just 3 pins</li>
+    </ul>
+    <p class="try reveal d3"><b>Try:</b> click a block on either side to light up its twin.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=890s" target="_blank" rel="noopener">▶ Watch 14:50</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560" id="l7Svg">
+      <text x="30" y="40" class="s">DISCRETE (RAIL 1)</text>
+      <path class="w" d="M150 140 V220 M240 260 H395 V140 M395 300 V260 M150 380 V300 M395 380 V340"/>
+      <rect class="box" data-k="ref" x="30" y="60" width="210" height="80" rx="8"/><text data-k="ref" x="46" y="94">Reference</text><text x="46" y="122" class="s">R3 + zener + pot</text>
+      <rect class="box" data-k="ea" x="30" y="220" width="210" height="80" rx="8"/><text data-k="ea" x="46" y="254">Error amp</text><text x="46" y="282" class="s">op-amp</text>
+      <rect class="box" data-k="pass" x="300" y="60" width="200" height="80" rx="8"/><text data-k="pass" x="316" y="94">Series pass</text><text x="316" y="122" class="s">Q1 + R5</text>
+      <rect class="box" data-k="lim" x="300" y="300" width="200" height="40" rx="8"/><text data-k="lim" x="316" y="328">Limiter Q2</text>
+      <rect class="box" data-k="rs" x="300" y="380" width="200" height="60" rx="8"/><text data-k="rs" x="316" y="418">R_S (+R_A/R_B)</text>
+      <rect class="box" data-k="div" x="30" y="380" width="210" height="60" rx="8"/><text data-k="div" x="46" y="418">Divider R1/R2</text>
+      <path d="M560 30 V530" stroke="#9fb8ac" stroke-width="2" stroke-dasharray="4 8"/>
+      <!-- LM723 chip -->
+      <text x="610" y="40" class="s">LM723 (INTERNAL BLOCK DIAGRAM)</text>
+      <rect x="640" y="60" width="310" height="440" rx="12" fill="rgba(0,0,0,.35)" stroke="#eef2ea" stroke-width="3"/>
+      <rect class="box" data-k="ref" x="665" y="85" width="260" height="70" rx="8"/><text data-k="ref" x="682" y="116">Voltage reference</text><text x="682" y="142" class="s">zener + amp, ≈7.15 V</text>
+      <rect class="box" data-k="ea" x="665" y="185" width="260" height="70" rx="8"/><text data-k="ea" x="682" y="226">Error amplifier</text>
+      <rect class="box" data-k="pass" x="665" y="285" width="260" height="70" rx="8"/><text data-k="pass" x="682" y="326">Series pass</text>
+      <rect class="box" data-k="lim" x="665" y="385" width="260" height="70" rx="8"/><text data-k="lim" x="682" y="426">Current limiter</text>
+      <!-- pins -->
+      <path class="w" d="M640 120 H610 M640 205 H610 M640 235 H610 M950 300 H980 M950 340 H990 M950 400 H990 M950 440 H990"/>
+      <text x="566" y="126" class="s">V_REF</text><text x="584" y="200" class="s">NI</text><text x="572" y="256" class="s">INV</text>
+      <text x="956" y="292" class="s">V_C</text><text x="956" y="332" class="s">V_OUT</text><text x="960" y="394" class="s">CL</text><text x="960" y="434" class="s">CS</text>
+      <!-- external parts -->
+      <rect class="ext" data-k="rs" x="995" y="385" width="110" height="70" rx="8"/><text data-k="rs" x="1022" y="426">R_S</text>
+      <rect class="ext" data-k="div" x="570" y="508" width="150" height="46" rx="8"/><text data-k="div" x="588" y="538">R1/R2 ext.</text>
+      <path d="M610 235 V508" stroke="#9fb8ac" stroke-width="2.5" stroke-dasharray="8 6"/>
+      <g id="boostG" style="display:none">
+        <use href="#s-npn" class="c hl" transform="translate(1010,300) scale(.9)"/>
+        <path class="w" d="M990 340 V300 H1010 M1055 255 V230 M1055 345 V360"/>
+        <text x="1000" y="214" class="v">boost Q</text>
+      </g>
+      <text x="770" y="538" class="s">dashed = you add</text>
+      <!-- hit boxes generated in JS from every [data-k] rect -->
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <button class="btn" id="boostBtn">+ Add boost transistor</button>
+        <div class="msg" style="width:300px">An external Darlington boost (Q1 in the lecture) lifts the current above the chip's ~150 mA.</div>
+      </div>
+      <div class="card" id="l7Card"><h4>Pick a block</h4>Every block on the left has a twin on the right, either inside the chip or added by you.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 11: CONCEPT 10, 78xx AND THE HEADROOM RULE (schematic + scope)
+     =========================================== -->
+<section class="slide" data-widget="s78">
+  <header class="hd reveal"><div class="tag"><span>10</span>Rail 3 · 19:24</div><h2 data-editable>7805 and the <em>3 V headroom rule</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>The 78xx fixed regulators (7805 = 5 V, 7812 = 12 V, 7815 = 15 V…) need no external parts: just input, output and common. They supply up to 1.5 A with protection built in.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li>Keep <b>V_in − V₀ &gt; 3 V</b>, even at the bottom of the ripple and at low mains</li>
+      <li>For a 7805, <b>V_C &gt; 8 V under any condition</b>, so choose the winding to suit</li>
+      <li>Full-bridge ripple: ΔV ≈ I₀ / (2fC)</li>
+      <li>Heat-sink the 7805, the LM317 and Q1 alike (T_J ≤ 150 °C)</li>
+      <li>TI lists about 2 V typical dropout at 1 A; the 3 V rule leaves a margin</li>
+    </ul>
+    <div class="eq reveal d3"><span class="tex">V_{\mathrm{C,min}} = V_{\mathrm{peak}} - \Delta V \ge V_0 + 3\,\mathrm{V}</span><span class="tex">\Delta V \approx \dfrac{I_0}{2fC}</span></div>
+    <p class="try reveal d3"><b>Try:</b> set mains to −20 % and raise the load until the output sags.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=1164s" target="_blank" rel="noopener">▶ Watch 19:24</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560">
+      <path class="c" d="M80 60 q-24 15 0 30 q-24 15 0 30 q-24 15 0 30 q-24 15 0 30"/>
+      <path class="w" d="M80 60 H150 V102 H168 M80 180 H150 V138 H168 M276 96 H300 V65 H520 M276 144 H300 V200 H900 M380 65 V85 M380 175 V200 M660 65 H900 V90 M900 180 V200 M590 95 V200"/>
+      <use href="#s-brg" class="c" transform="translate(180,120) scale(.6)"/>
+      <use href="#s-cap" class="c" transform="translate(380,85) rotate(90)"/>
+      <rect id="sBox" x="520" y="35" width="140" height="60" rx="6" class="box"/>
+      <text id="sPart" x="552" y="74" class="big" style="font-size:32px">7805</text>
+      <use href="#s-res" class="c" transform="translate(900,90) rotate(90)"/>
+      <use href="#s-gnd" class="c" transform="translate(740,200)"/>
+      <circle class="dot" cx="380" cy="65" r="6"/><circle class="dot" cx="590" cy="200" r="6"/>
+      <text id="sW" x="20" y="226" class="s">9 V rms</text>
+      <text x="396" y="138" class="s" id="sCl">C 2200 µF</text>
+      <text x="330" y="50" class="v">V_C</text><text x="700" y="52" class="v" id="sV0l">V₀ 5 V</text>
+      <text x="916" y="142">R_L</text><text id="sIl" x="940" y="80" class="s">0.50 A</text>
+      <path id="sFl" class="flow" d="M300 65 H520 M660 65 H900 V200 H300"/>
+      <!-- scope -->
+      <rect x="40" y="244" width="1050" height="306" rx="10" fill="#06140f" stroke="#2f5a4a" stroke-width="2"/>
+      <g id="scGrid"></g>
+      <path id="scShade" fill="rgba(255,106,85,.28)" stroke="none"/>
+      <path id="scHead" stroke="#eef2ea" stroke-width="2" stroke-dasharray="8 6" fill="none"/>
+      <path id="scVC" stroke="#d9905a" stroke-width="4" fill="none"/>
+      <path id="scVO" stroke="#7fd3ff" stroke-width="4" fill="none"/>
+      <text x="850" y="272" class="s" style="fill:#d9905a">— V_C</text><text x="940" y="272" class="s" style="fill:#7fd3ff">— V₀</text>
+      <text id="scHl" x="850" y="296" class="s">- - V₀ + 3 V</text>
+      <text x="520" y="544" class="s">time, 40 ms (4 ripple cycles)</text>
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <div class="btns" id="sParts"><button class="btn on" data-v="5">7805</button><button class="btn" data-v="12">7812</button><button class="btn" data-v="15">7815</button></div>
+        <div class="field"><label>Winding <output id="oW">9.0 V rms</output></label><input type="range" id="sWr" min="6" max="18" step="0.5" value="9"></div>
+      </div>
+      <div class="col">
+        <div class="field"><label>Mains <output id="oM">0 %</output></label><input type="range" id="sMn" min="-20" max="20" step="1" value="0"></div>
+        <div class="field"><label>Load I₀ <output id="oL">0.50 A</output></label><input type="range" id="sLd" min="0.1" max="1.5" step="0.05" value="0.5"></div>
+      </div>
+      <div class="col" style="gap:10px">
+        <div class="btns" id="sCaps"><button class="btn on" data-c="2200">2200 µF</button><button class="btn" data-c="4700">4700 µF</button></div>
+        <div class="ros" style="grid-template-columns:repeat(3,auto);gap:4px 20px">
+          <div class="r"><small>V_C,min</small><b id="sMin" style="font-size:30px">—</b></div>
+          <div class="r"><small>ΔV</small><b id="sDV" style="font-size:30px" class="cu">—</b></div>
+          <div class="r"><small>P_reg</small><b id="sPr" style="font-size:30px">—</b></div>
+        </div>
+        <div class="msg" id="sSt"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 12: CONCEPT 11, LINE AND LOAD REGULATION BENCH
+     =========================================== -->
+<section class="slide" data-widget="bench">
+  <header class="hd reveal"><div class="tag"><span>11</span>The experiment · 22:06</div><h2 data-editable>Testing: <em>line and load regulation</em></h2></header>
+  <div class="txt">
+    <p class="core reveal d1" data-editable>For each rail, measure how V₀ changes. <b>Line regulation:</b> vary V_i with an autotransformer (variac) on the primary at a fixed load. <b>Load regulation:</b> vary R₀ to change I₀ at a fixed V_i.</p>
+    <ul class="pts reveal d2" data-editable>
+      <li>Take about <b>5 readings</b> for each test and tabulate them</li>
+      <li>Plot <b>V₀ (y) against V_i (x)</b>, then <b>V₀ (y) against I₀ (x)</b>; the independent variable goes on x</li>
+      <li>A good regulator gives flat lines. The edges show dropout (low V_i) and the current limit (high I₀).</li>
+      <li>Each rail here uses its own winding: 24, 18 or 9 V rms</li>
+    </ul>
+    <div class="eq reveal d3"><span class="tex">\text{Line: } \dfrac{\Delta V_0}{\Delta V_{\mathrm{i}}} \qquad\qquad \text{Load: } \dfrac{\Delta V_0}{\Delta I_0}</span></div>
+    <p class="try reveal d3"><b>Try:</b> press a Sweep button, or move a slider and click Record.</p>
+    <a class="watch reveal d4" href="https://www.youtube.com/watch?v=uUPryFq32oY&t=1326s" target="_blank" rel="noopener">▶ Watch 22:06</a>
+  </div>
+  <div class="board reveal d2">
+    <svg class="sch" viewBox="0 0 1124 560">
+      <!-- variac + transformer -->
+      <path class="c" d="M90 60 q24 15 0 30 q24 15 0 30 q24 15 0 30 q24 15 0 30"/>
+      <path d="M60 170 L118 70" stroke="#ffc48f" stroke-width="3" marker-end="url(#arr)"/>
+      <text id="bVar" x="20" y="226" class="v">variac 230 V</text>
+      <path class="w" d="M90 60 H180 M90 180 H180 M230 60 H270 V102 H288 M230 180 H270 V138 H288 M396 96 H420 V65 H640 M396 144 H420 V200 H1060 M470 65 V85 M470 175 V200 M540 65 V104 M540 156 V200 M770 65 H808 M852 65 H1060 V104 M1060 156 V200 M960 65 V90 M960 180 V200 M705 95 V200"/>
+      <path class="c" d="M180 60 q24 15 0 30 q24 15 0 30 q24 15 0 30 q24 15 0 30"/>
+      <path class="c" d="M200 50 V190 M210 50 V190"/>
+      <path class="c" d="M230 60 q-24 15 0 30 q-24 15 0 30 q-24 15 0 30 q-24 15 0 30"/>
+      <use href="#s-brg" class="c" transform="translate(300,120) scale(.6)"/>
+      <use href="#s-cap" class="c" transform="translate(470,85) rotate(90)"/>
+      <circle cx="540" cy="130" r="26" class="c"/><text x="531" y="137" class="s" style="fill:#eef2ea">V</text>
+      <rect x="640" y="35" width="130" height="60" rx="6" class="box"/>
+      <text id="bReg" x="656" y="72" style="font-size:20px">DISCRETE</text>
+      <circle cx="830" cy="65" r="22" class="c"/><text x="822" y="72" class="s" style="fill:#eef2ea">A</text>
+      <use href="#s-res" class="c" transform="translate(960,90) rotate(90)"/>
+      <path d="M930 170 L992 100" stroke="#ffc48f" stroke-width="3" marker-end="url(#arr)"/>
+      <circle cx="1060" cy="130" r="26" class="c"/><text x="1051" y="137" class="s" style="fill:#eef2ea">V</text>
+      <circle class="dot" cx="470" cy="65" r="6"/><circle class="dot" cx="540" cy="65" r="6"/><circle class="dot" cx="960" cy="65" r="6"/>
+      <text id="bVi" x="572" y="160" class="v">33.0 V</text>
+      <text id="bA" x="800" y="28" class="v">1.00 A</text>
+      <text id="bR" x="846" y="122" class="s">R₀ 15 Ω</text>
+      <text id="bV0" x="1000" y="236" class="v">15.00 V</text>
+      <path id="bFl" class="flow" d="M420 65 H640 M770 65 H960 V200 H420"/>
+      <!-- plots -->
+      <g id="pLine" transform="translate(40,270)"></g>
+      <g id="pLoad" transform="translate(430,270)"></g>
+      <g id="pTab" transform="translate(830,270)"></g>
+    </svg>
+    <div class="ctl">
+      <div class="col">
+        <div class="btns" id="bRegs"><button class="btn on" data-r="disc">Discrete</button><button class="btn" data-r="lm">LM317</button><button class="btn" data-r="s78">7805</button></div>
+        <div class="btns"><button class="btn" id="bRec">● Record</button><button class="btn" id="bClr">Clear</button></div>
+      </div>
+      <div class="col">
+        <div class="field"><label>Variac (mains) <output id="oVar">230 V</output></label><input type="range" id="sVar" min="160" max="280" step="1" value="230"></div>
+        <div class="field"><label>Load R₀ <output id="oR0">15.0 Ω</output></label><input type="range" id="sR0" min="0" max="100" step="1" value="51"></div>
+      </div>
+      <div class="col">
+        <button class="btn" id="bSwL">Sweep line ×5</button>
+        <button class="btn" id="bSwI">Sweep load ×6</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDES 13–14: QUIZ
+     =========================================== -->
+<section class="slide">
+  <header class="hd reveal"><div class="tag"><span>Q</span>Check your understanding · 1 of 2</div><h2>Predict, <em>then click</em></h2></header>
+  <div class="qgrid">
+    <div class="q reveal d1"><span class="qn">QUESTION 1</span><p class="qt">A 15-0-15 winding used end to end. Roughly what peak voltage reaches the capacitor (ignore diode drops)?</p>
+      <button class="opt">15 V</button><button class="opt">21 V</button><button class="opt" data-c>42 V</button>
+      <p class="ex"><b>42 V.</b> End to end is 30 V rms, and 30 × √2 ≈ 42 V.</p></div>
+    <div class="q reveal d2"><span class="qn">QUESTION 2</span><p class="qt">Mains is at +20 %. The discrete rail gives 15 V at 1 A from V_C = 40 V. What does Q1 dissipate?</p>
+      <button class="opt">15 W</button><button class="opt" data-c>25 W</button><button class="opt">40 W</button>
+      <p class="ex"><b>25 W.</b> (40 − 15) V × 1 A. 40 W is what the front end must supply in total.</p></div>
+    <div class="q reveal d3"><span class="qn">QUESTION 3</span><p class="qt">When is the op-amp most at risk of over-current through R5?</p>
+      <button class="opt">At no load</button><button class="opt" data-c>With the output shorted</button><button class="opt">At high mains</button>
+      <p class="ex"><b>Output shorted.</b> V₀ = 0 drops Q1's base to about 1.2 V, so almost the whole op-amp voltage sits across R5.</p></div>
+  </div>
+</section>
+<section class="slide">
+  <header class="hd reveal"><div class="tag"><span>Q</span>Check your understanding · 2 of 2</div><h2>Predict, <em>then click</em></h2></header>
+  <div class="qgrid">
+    <div class="q reveal d1"><span class="qn">QUESTION 4</span><p class="qt">LM317 with R1 = 240 Ω. Which R2 gives about 5 V?</p>
+      <button class="opt">240 Ω</button><button class="opt" data-c>720 Ω</button><button class="opt">2.4 kΩ</button>
+      <p class="ex"><b>720 Ω.</b> 1.25 × (1 + 720/240) = 1.25 × 4 = 5 V.</p></div>
+    <div class="q reveal d2"><span class="qn">QUESTION 5</span><p class="qt">A 7805's capacitor ripples between 7.4 V and 9 V. What happens?</p>
+      <button class="opt">Fine, the average is above 8 V</button><button class="opt" data-c>The output dips at every ripple valley</button><button class="opt">The 7805 overheats</button>
+      <p class="ex"><b>It dips.</b> The headroom rule has to hold at the valley, not on average.</p></div>
+    <div class="q reveal d3"><span class="qn">QUESTION 6</span><p class="qt">In a load-regulation test, what is the independent variable (the x-axis)?</p>
+      <button class="opt">V₀</button><button class="opt" data-c>I₀, set by R₀</button><button class="opt">V_i</button>
+      <p class="ex"><b>I₀.</b> Vary R₀ to set I₀ and plot V₀ against it. For line regulation, V_i is on x.</p></div>
+  </div>
+</section>
+
+<!-- ===========================================
+     SLIDE 15: RECAP + SOURCES
+     =========================================== -->
+<section class="slide">
+  <header class="hd reveal"><div class="tag"><span>✓</span>Recap</div><h2>What to <em>take to the bench</em></h2></header>
+  <div class="recap">
+    <div class="rc reveal d1"><span>1</span><p data-editable>One multi-winding transformer feeds three chains (NTC → bridge → C → regulator): a discrete 15 V rail, an LM317 at 15 V and a 7805 at 5 V.</p></div>
+    <div class="rc reveal d1"><span>2</span><p data-editable>At ±20 % mains, V_C runs from about 27 to 40 V, so Q1 sees 12–25 V and up to 25 W. Size its heat sink for the high-mains corner.</p></div>
+    <div class="rc reveal d2"><span>3</span><p data-editable>R5 protects the op-amp (worst case: a shorted output), and a resistor plus zener gives the op-amp a steady supply.</p></div>
+    <div class="rc reveal d2"><span>4</span><p data-editable>LM317: V₀ = 1.25 (1 + R2/R1). The LM723 is our discrete design inside one IC. The 78xx parts are fixed and need just three pins.</p></div>
+    <div class="rc reveal d3"><span>5</span><p data-editable>Every IC regulator needs more than 3 V of headroom at the ripple valley, plus a heat sink. Check each rail with V₀–V_i and V₀–I₀ plots.</p></div>
+  </div>
+  <div class="srcs reveal d2">
+    <h3>Sources</h3>
+    <p><a href="https://www.youtube.com/watch?v=uUPryFq32oY" target="_blank" rel="noopener">▶ W1_L1.6: Example – linear power supply</a><br>IIT Madras, BS in Electronic Systems. The backbone of every slide.</p>
+    <p><a href="https://www.ti.com/lit/ds/symlink/lm317.pdf" target="_blank" rel="noopener">TI LM317 datasheet</a><br>V₀ equation with I_ADJ ≈ 50 µA, R1 = 240 Ω, thermal table and the heat-sink equation.</p>
+    <p><a href="https://www.ti.com/lit/ds/symlink/lm7800.pdf" target="_blank" rel="noopener">TI LM340 / LM78xx datasheet</a><br>1.5 A, 35 V maximum input, about 2 V dropout at 1 A, output options.</p>
+    <p style="color:#9fb8ac">Transcript and brief: lectures/linear-power-supply-example/</p>
+  </div>
+</section>
+
+</main></div>
+
+<div id="progress"></div><div id="counter">01 / 15</div>
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">✎ EDIT</button>
+
+<script>
+/* ===========================================
+   HELPERS
+   =========================================== */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const SVGNS='http://www.w3.org/2000/svg';
+const fx=(n,d=1)=>Number(n).toFixed(d);
+const T=(id,s)=>{const e=document.getElementById(id);if(!e)return;e.textContent=s;if(e instanceof SVGTextElement)svgMath(e)};
+function el(tag,attrs,parent,text){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;if(parent)parent.appendChild(e);if(tag==='text'&&text!=null)svgMath(e);return e}
+/* Animated current: rate ~1 = normal speed; 0 hides the flow */
+function flow(id,rate){const e=typeof id==='string'?document.getElementById(id):id;if(!e)return;
+  if(!(rate>0.004)){e.style.opacity=0;return}
+  e.style.opacity=Math.min(1,.4+rate*.6);e.style.animationDuration=(1.4/Math.max(.2,Math.min(rate,4)))+'s'}
+/* Temperature (°C) → colour from cool blue to hot red */
+function tcol(t){const k=Math.max(0,Math.min(1,(t-25)/125));return `hsl(${200-200*k},${70+20*k}%,${62-8*k}%)`}
+function onRange(id,fn){const e=document.getElementById(id);e.addEventListener('input',fn);return e}
+function pickGroup(container,attr,fn){$$('button',container).forEach(b=>b.addEventListener('click',()=>{$$('button',container).forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset[attr])}))}
+
+/* ===========================================
+   MATH TYPESETTING (KaTeX)
+   - .tex spans hold LaTeX source (formula boxes)
+   - texify() turns variable names in body text (V_C, I₀, θ_SA, R1 …) into inline math
+   - svgMath() gives SVG schematic labels the KaTeX fonts with real subscripts
+   =========================================== */
+const MATH_TOK=/(?<![\w\\])(?:aV₀|I₀R_S|Δ(?:V₀|V_i|I₀|V)|[VIPTRDθ]_[A-Za-z0-9]+(?:,(?:max|min))?|[VIR]₀|R[1-5]|Q[12]|[ηβα])(?!\w)/gu;
+const GREEK={'θ':'\\theta','Δ':'\\Delta','η':'\\eta','β':'\\beta','α':'\\alpha'};
+/* split one token into {pre, base, sub}: e.g. "θ_SA" → base θ, sub SA; "R1" → base R, sub 1 */
+function tokParts(tok){
+  if(tok==='aV₀')return[{pre:'a',base:'V',sub:'0'}];
+  if(tok==='I₀R_S')return[{base:'I',sub:'0'},{base:'R',sub:'S'}];
+  let d=null;if(tok[0]==='Δ'&&tok.length>1){d='Δ';tok=tok.slice(1)}
+  const m=tok.replace('₀','_0').match(/^([A-Zθηβα])(?:_?(.+))?$/);
+  const p={base:m[1],sub:m[2]||''};if(d)p.delta=true;return[p]}
+function tokTex(tok){return tokParts(tok).map(p=>(p.delta?'\\Delta ':'')+(p.pre||'')+(GREEK[p.base]||p.base)+
+  (p.sub?(/^\d+$/.test(p.sub)?`_{${p.sub}}`:`_{\\mathrm{${p.sub.replace(',',',\\,')}}}`):'')).join('')}
+function texify(root){
+  if(!window.katex||!root)return;
+  const skip='svg,script,style,h1,h2,.tag,.katex,.tex,textarea,.t-ref';
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>(n.parentElement&&n.parentElement.closest(skip))?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+  const nodes=[];while(w.nextNode())nodes.push(w.currentNode);
+  nodes.forEach(n=>{const t=n.nodeValue;MATH_TOK.lastIndex=0;if(!MATH_TOK.test(t))return;MATH_TOK.lastIndex=0;
+    const f=document.createDocumentFragment();let last=0,m;
+    while((m=MATH_TOK.exec(t))){if(m.index>last)f.appendChild(document.createTextNode(t.slice(last,m.index)));
+      const sp=document.createElement('span');sp.className='tx';katex.render(tokTex(m[0]),sp,{throwOnError:false});f.appendChild(sp);last=m.index+m[0].length}
+    if(last<t.length)f.appendChild(document.createTextNode(t.slice(last)));n.parentNode.replaceChild(f,n)})}
+function svgMath(t){
+  if(!t||t.closest('.t-board'))return;const txt=t.textContent;MATH_TOK.lastIndex=0;if(!MATH_TOK.test(txt))return;MATH_TOK.lastIndex=0;
+  const fs=parseFloat(getComputedStyle(t).fontSize)||19,sh=fs*.28;let last=0,m,back=false;t.textContent='';
+  const add=(s,attrs)=>{const e=document.createElementNS(SVGNS,'tspan');for(const k in attrs)e.setAttribute(k,attrs[k]);
+    if(back&&attrs.dy==null){e.setAttribute('dy',-sh);back=false}e.textContent=s;t.appendChild(e);return e};
+  const piece=tok=>tokParts(tok).forEach(p=>{
+    if(p.delta)add('Δ',{'font-family':'KaTeX_Main'});
+    if(p.pre)add(p.pre,{'font-family':'KaTeX_Math','font-style':'italic'});
+    add(p.base,{'font-family':'KaTeX_Math','font-style':'italic','font-size':'1.12em'});
+    if(p.sub){add(p.sub,{'font-family':'KaTeX_Main','font-size':'0.72em',dy:sh});back=true}});
+  while((m=MATH_TOK.exec(txt))){if(m.index>last)add(txt.slice(last,m.index),{});piece(m[0]);last=m.index+m[0].length}
+  if(last<txt.length)add(txt.slice(last),{})}
+function renderAllMath(){
+  if(!window.katex)return;
+  $$('.tex').forEach(e=>katex.render(e.textContent,e,{throwOnError:false,displayMode:false}));
+  texify(document.body);
+  $$('svg.sch text').forEach(svgMath);
+  /* cards and messages are rewritten via innerHTML as you interact: typeset whatever gets added */
+  new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{
+    const el=n.nodeType===1?n:n.parentElement;if(el&&!el.closest('svg,.katex'))texify(n.nodeType===1?n:el)}))).observe(document.body,{childList:true,subtree:true});
+}
+const widgets={};
+
+/* ===========================================
+   W1: PROJECT OVERVIEW. Builds three chains, MCB, rail picker.
+   =========================================== */
+widgets.proj=(()=>{
+  const g=$('#chains'),Y=[95,280,465],names=['Q1 + op-amp','LM317','7805'],outs=['15 V','15 V','5 V'];
+  const info=[
+    {h:'Rail 1: discrete 15 V',t:'<b>Winding:</b> 12-0-12 used end to end = 24 V rms → V_C ≈ 27–40 V. <b>Regulator:</b> series-pass Q1, op-amp error amp, zener reference, foldback limit. <b>Watch:</b> Q1 drops 12–25 V and needs a heat sink.'},
+    {h:'Rail 2: LM317 15 V',t:'<b>Winding:</b> pick one that keeps V_C ≥ 18 V (15 V + 3 V headroom) at low mains, e.g. 18 V rms. <b>Regulator:</b> 3-pin adjustable IC, V₀ = 1.25(1 + R2/R1). Add an NTC for surge limiting as well.'},
+    {h:'Rail 3: 7805 5 V',t:'<b>Winding:</b> keep V_C &gt; 8 V under every condition, e.g. 9 V rms. <b>Regulator:</b> fixed 3-pin IC with no external parts. It is the simplest rail, but it still needs a heat sink.'}];
+  let on=false,sel=0;
+  Y.forEach((yc,i)=>{const c=el('g',{id:'chain'+i},g);
+    el('path',{class:'c',d:`M330 ${yc-50} q-20 12.5 0 25 q-20 12.5 0 25 q-20 12.5 0 25 q-20 12.5 0 25`},c);
+    el('path',{class:'w',d:`M330 ${yc-50} H370 M460 ${yc-50} H480 V${yc-21} H496 M330 ${yc+50} H480 V${yc+21} H496 M622 ${yc-28} H640 V${yc-50} H750 M870 ${yc-50} H1080 M622 ${yc+28} H640 V${yc+50} H1080 M690 ${yc-50} V${yc-45} M690 ${yc+45} V${yc+50} M810 ${yc-25} V${yc+50} M1000 ${yc-50} V${yc-45} M1000 ${yc+45} V${yc+50}`},c);
+    el('use',{href:'#s-ntc',class:'c',transform:`translate(370,${yc-50})`},c);
+    el('use',{href:'#s-brg',class:'c',transform:`translate(510,${yc}) scale(.7)`},c);
+    el('use',{href:'#s-cap',class:'c',transform:`translate(690,${yc-45}) rotate(90)`},c);
+    el('rect',{class:'box',x:750,y:yc-78,width:120,height:54,rx:6},c);
+    el('text',{x:810,y:yc-45,'text-anchor':'middle',style:'font-size:17px'},c,names[i]);
+    el('use',{href:'#s-res',class:'c',transform:`translate(1000,${yc-45}) rotate(90)`},c);
+    el('circle',{class:'pad',cx:1080,cy:yc-50,r:9},c);
+    el('text',{x:1028,y:yc-62,class:'v'},c,outs[i]);
+    el('text',{x:384,y:yc-70,class:'s'},c,'NTC');
+    const hit=el('rect',{class:'hit',x:320,y:yc-90,width:780,height:170,rx:10},c);hit.addEventListener('click',()=>{sel=i;upd()});
+    el('path',{id:'fl'+i,class:'flow',d:`M622 ${yc-28} H640 V${yc-50} H1000 V${yc+50} H640 V${yc+28} H622`},c);
+  });
+  const lever=$('#mcbLever'),btn=$('#mcbBtn');
+  function upd(){
+    lever.setAttribute('x2',on?172:162);lever.setAttribute('y2',on?150:122);lever.classList.toggle('hl',on);
+    btn.textContent=on?'⏻ Switch OFF':'⏻ Switch ON';btn.classList.toggle('on',on);
+    flow('flP',on?1:0);
+    Y.forEach((_,i)=>{$('#chain'+i).classList.toggle('dim',i!==sel);flow('fl'+i,on?(i===sel?1.2:.5):0)});
+    $$('#railBtns button').forEach(b=>b.classList.toggle('on',+b.dataset.i===sel));
+    $('#projCard').innerHTML=`<h4>${info[sel].h}</h4>${info[sel].t}<br><span class="g">${on?'Power on: current flows in every chain':'MCB open: no current yet'}</span>`;
+  }
+  const toggle=()=>{on=!on;upd()};
+  btn.addEventListener('click',toggle);$('#mcbHit').addEventListener('click',toggle);
+  $$('#railBtns button').forEach(b=>b.addEventListener('click',()=>{sel=+b.dataset.i;upd()}));
+  upd();return{};
+})();
+
+/* ===========================================
+   W2: TRANSFORMER LUGS + METER
+   =========================================== */
+widgets.xfmr=(()=>{
+  const g=$('#secs'),Y=[100,280,460],V=[12,15,9];
+  Y.forEach((yc,k)=>{
+    el('path',{class:'c',d:`M310 ${yc-70} q-24 17.5 0 35 q-24 17.5 0 35 q-24 17.5 0 35 q-24 17.5 0 35`},g);
+    el('path',{class:'w',d:`M310 ${yc-70} H544 M310 ${yc} H544 M310 ${yc+70} H544`},g);
+    el('text',{x:372,y:yc-38,class:'s'},g,`${V[k]}-0-${V[k]}`);
+    [yc-70,yc,yc+70].forEach((y,p)=>{
+      el('circle',{class:'lug',cx:560,cy:y,r:16,fill:'#c9d1cf',stroke:'#eef2ea','stroke-width':3,'data-w':k,'data-p':p},g);
+      el('text',{x:588,y:y+7},g,p===1?'0':String(V[k]));
+    });
+  });
+  let sel=[];
+  const pos=c=>({x:+c.getAttribute('cx'),y:+c.getAttribute('cy')});
+  function lead(c,tx){if(!c)return'';const p=pos(c);const sx=p.x+(p.x<300?-16:16);return`M${sx} ${p.y} C ${sx+140} ${p.y}, ${tx} 540, ${tx} 445`}
+  function upd(){
+    $$('.lug').forEach(c=>{c.style.filter=sel.includes(c)?'drop-shadow(0 0 9px #ffc48f)':'';c.setAttribute('r',sel.includes(c)?19:16)});
+    $('#prA').setAttribute('d',lead(sel[0],850));$('#prB').setAttribute('d',lead(sel[1],1000));
+    if(sel.length<2){T('mV','— —');T('xVr','—');T('xVp','—');T('xVc','—');
+      $('#xMsg').innerHTML=sel.length?'<h4>Probe A placed</h4>Now click a second lug for probe B.':'<h4>Pick two lugs</h4>Click a lug for probe A, then another for probe B. Try both ends of one winding, then an end and its centre tap.';return}
+    const [a,b]=sel.map(c=>({w:c.dataset.w,p:+c.dataset.p}));let v=null,msg;
+    if(a.w!==b.w){msg='<h4>No reading</h4>These lugs are on <b>different windings</b>, which are isolated from each other, so no circuit is formed. That isolation is why each rail can have its own ground.'}
+    else if(a.w==='p'){v=a.p===b.p?0:230;msg='<h4>Primary: 230 V</h4>This is the input side, connected to the mains through the MCB. Never probe it live on a bench!'}
+    else{const d=Math.abs(a.p-b.p),h=V[+a.w];v=d*h;
+      msg=d===2?`<h4>End to end: ${2*h} V rms</h4>The whole ${h}-0-${h} winding. A full bridge across it gives V_C ≈ ${fx(2*h*Math.SQRT2-1.4,1)} V.`:
+          d===1?`<h4>End to centre: ${h} V rms</h4>Half the winding. Use the centre tap as the common for a centre-tapped (two-diode) rectifier, or for a lower voltage.`:'<h4>Same lug</h4>Both probes on one lug read 0 V.'}
+    $('#xMsg').innerHTML=msg;
+    if(v===null){T('mV','OL');T('xVr','—');T('xVp','—');T('xVc','—');return}
+    T('mV',fx(v,1));T('xVr',fx(v,1)+' V');T('xVp',fx(v*Math.SQRT2,1)+' V');T('xVc',v>0&&a.w!=='p'?fx(v*Math.SQRT2-1.4,1)+' V':'—');
+  }
+  $$('.lug').forEach(c=>{c.style.cursor='pointer';c.addEventListener('click',()=>{if(sel.length>=2)sel=[];sel.push(c);upd()})});
+  upd();return{};
+})();
+
+/* ===========================================
+   W3: DISCRETE REGULATOR. Parts, groups, loop trace.
+   =========================================== */
+widgets.disc=(()=>{
+  const grp={Q1:'pass',RS:'lim',Q2:'lim',RA:'lim',RB:'lim',R1:'fb',R2:'fb',OA:'fb',R3:'ref',DZ:'ref',R4:'ref',R5:'prot',C:'store',R0:'load'};
+  const gname={pass:'Pass element',lim:'Foldback current limit',fb:'Feedback / error amplifier',ref:'Reference',prot:'Op-amp protection',store:'Unregulated input',load:'Load'};
+  const info={
+    Q1:['Q1, series-pass BJT','It carries the whole load current and drops V_C − V₀. Choose it for I₀ and for the worst case P = V_CE·I₀, mounted on a heat sink.'],
+    RS:['R_S, current sense','I₀R_S appears across it. Together with R_A/R_B it sets the current at which Q2 turns on (≈0.6 V across Q2\'s base–emitter).'],
+    Q2:['Q2, limit transistor','When its V_BE reaches ≈0.6 V it diverts Q1\'s base drive, so the output current can\'t rise further.'],
+    RA:['R_A, foldback divider (top)','Q2\'s base sees a fraction α of V₀ + I₀R_S, so the current limit falls as V₀ falls. Into a short, the current is below the rated value.'],
+    RB:['R_B, foldback divider (bottom)','With R_A it sets α = R_B/(R_A+R_B), which fixes the knee and short-circuit currents of the foldback curve.'],
+    R1:['R1, output sense (top)','R1/R2 feed aV₀ to the op-amp\'s − input, where a = R2/(R1+R2). Choose them so that aV₀ = V_ref at the desired V₀.'],
+    R2:['R2, output sense (bottom)','The bottom of the divider. V₀ = V_ref / a.'],
+    OA:['Op-amp, error amplifier','Its high gain drives Q1\'s base until aV₀ = V_ref, so any change in V_C or I₀ is corrected.'],
+    R3:['R3, zener feed','It feeds the zener from V_C. Size it so the zener stays in breakdown across the 27–40 V swing.'],
+    DZ:['Zener diode','It holds a fixed voltage however much V_C moves. This is the regulator\'s reference.'],
+    R4:['R4, potentiometer','It sits across the zener. Its wiper sets V_ref, and therefore V₀.'],
+    R5:['R5, op-amp current limit','It limits the op-amp\'s output current. The worst case is a shorted output; keep the current below 75 % of the op-amp\'s rating (next slides).'],
+    C:['C, reservoir capacitor','After the full bridge: the unregulated V_C, which ripples and swings with mains.'],
+    R0:['R₀, load','The circuit being powered: I₀ = V₀/R₀.']};
+  const svg=$('#discSvg');let cur=null;
+  function sel(k){cur=k;const g=grp[k];
+    $$('[data-k]',svg).forEach(e=>{if(e.classList.contains('hit'))return;e.classList.toggle('hl',grp[e.dataset.k]===g)});
+    $('#discCard').innerHTML=`<h4>${info[k][0]}</h4><span class="g">${gname[g]}</span><br>${info[k][1]}`}
+  $$('.hit',svg).forEach(h=>h.addEventListener('click',()=>sel(h.dataset.k)));
+  const steps=['Step 0 / 4: press ▶ to follow the signal around the loop.',
+    'Step 1 / 4: the pot\'s wiper delivers <b>V_ref</b> to the op-amp\'s + input.',
+    'Step 2 / 4: the op-amp output drives <b>Q1\'s base through R5</b>.',
+    'Step 3 / 4: Q1 passes <b>load current</b> from V_C through R_S to V₀ and R₀.',
+    'Step 4 / 4: R1/R2 return <b>aV₀</b> to the − input. If V₀ rises, the drive falls, and the loop closes.'];
+  let st=0;function upd(){[1,2,3,4].forEach(i=>flow('lp'+i,i===st?1.2:(i<st?.35:0)));$('#lpTxt').innerHTML=steps[st];T('lpNext',st===4?'Restart ↺':'Trace the loop ▶')}
+  $('#lpNext').addEventListener('click',()=>{st=st===4?0:st+1;upd()});$('#lpPrev').addEventListener('click',()=>{st=Math.max(0,st-1);upd()});
+  upd();return{};
+})();
+
+/* ===========================================
+   W4: MAINS WINDOW → V_C, V_CE, P_Q1
+   =========================================== */
+widgets.win=(()=>{
+  const sT=onRange('sTol',upd),sI=onRange('sI',upd);
+  function upd(){const t=+sT.value/100,I=+sI.value,VC=24*Math.SQRT2*(1+t),VCE=VC-15,P=VCE*I,Pin=VC*I,Po=15*I;
+    T('oTol',(t>0?'+':'')+Math.round(t*100)+' %');T('oI',fx(I,2)+' A');
+    T('wMains',fx(230*(1+t),0)+' V');T('wVc','V_C '+fx(VC,1)+' V');T('wVce','V_CE = '+fx(VCE,1)+' V');T('wI','I₀ = '+fx(I,2)+' A');
+    const W=45;$('#bOut').style.width=Po/W*100+'%';$('#bQ').style.width=P/W*100+'%';$('#bIn').style.width=Pin/W*100+'%';
+    T('vOut',fx(Po,1)+' W');T('vQ',fx(P,1)+' W');T('vIn',fx(Pin,1)+' W');T('vEta',Math.round(15/VC*100)+' %');
+    $('#q1glow').setAttribute('opacity',Math.min(1,P/25));$('#wQ1').classList.toggle('hotc',P>20);
+    flow('wFl',I);}
+  upd();return{};
+})();
+
+/* ===========================================
+   W5: THERMAL LADDER
+   =========================================== */
+widgets.therm=(()=>{
+  const sP=onRange('sP',upd),sA=onRange('sTA',upd),sS=onRange('sSA',upd);const JC=1.5,CS=.5;
+  $$('[data-p]').forEach(b=>b.addEventListener('click',()=>{sP.value=b.dataset.p;upd()}));
+  function upd(){const P=+sP.value,TA=+sA.value,SA=+sS.value;
+    const TS=TA+P*SA,TC=TS+P*CS,TJ=TC+P*JC,max=(150-TA)/P-JC-CS;
+    T('oP',P+' W');T('oTA',TA+' °C');T('oSA',fx(SA,1)+' °C/W');T('thP',P+' W');T('thTAl',TA+' °C');T('thSAl','θ_SA '+fx(SA,1));
+    [['nJ',TJ],['nC',TC],['nS',TS],['nA',TA]].forEach(([id,t])=>$('#'+id).setAttribute('fill',tcol(t)));
+    T('tJ',fx(TJ,0)+' °C');T('tC',fx(TC,0)+' °C');T('tS',fx(TS,0)+' °C');
+    $('#tJ').style.fill=TJ>150?'#ff6a55':'#eef2ea';
+    $('#pJ').setAttribute('fill',tcol(TJ));$('#pC').setAttribute('fill',tcol(TC));$('#pS').setAttribute('fill',tcol(TS));$$('#pFins rect').forEach(r=>r.setAttribute('fill',tcol(TS)));
+    const rTJ=$('#rTJ');rTJ.textContent=fx(TJ,0)+' °C';rTJ.className=TJ>150?'hot':'ok';
+    T('rMax',max>0?fx(max,2)+' °C/W':'impossible');
+    const v=$('#rV');if(TJ>150){v.textContent='Too hot: Q1 fails';v.className='hot'}else{v.textContent=`OK, ${fx(150-TJ,0)} °C of margin`;v.className='ok'}
+    $$('[data-p]').forEach(b=>b.classList.toggle('on',+b.dataset.p===P));
+    flow('thFl',P/20);}
+  upd();return{};
+})();
+
+/* ===========================================
+   W6: R5 AND THE SHORTED OUTPUT
+   =========================================== */
+widgets.r5=(()=>{
+  const sR=onRange('sR5',upd);let rating=50,short=false;
+  pickGroup($('#sR5').closest('.ctl').querySelector('.btns'),'r',v=>{rating=+v;upd()});
+  const tog=()=>{short=!short;upd()};$('#r5Short').addEventListener('click',tog);$('#swHit').addEventListener('click',tog);
+  function upd(){const R=+sR.value,lim=.75*rating,Rmin=12.8/(lim/1000);
+    const I=short?12.8/R*1000:10;const over=I>lim;
+    T('oR5',R+' Ω');T('r5Lbl','R5 = '+R+' Ω');T('r5I','I_R5 = '+fx(I,1)+' mA');T('r5VB',short?'V_B1 ≈ 1.2 V':'V_B1 ≈ 16.1 V');
+    T('r5L',fx(lim,1)+' mA');T('r5Min',Math.round(Rmin)+' Ω');
+    const s=$('#r5St');s.textContent=over?'Overloaded':(short?'OK while shorted':'OK (normal run)');s.className=over?'hot':'ok';
+    const sc=60;$('#r5Bar').style.width=Math.min(100,I/sc*100)+'%';$('#r5Bar').classList.toggle('hot',over);$('#r5Lim').style.left=lim/sc*100+'%';T('r5BarV',fx(I,1)+' mA');
+    $('#r5OA').classList.toggle('hotc',over);$('#r5R').classList.toggle('hl',short);
+    const lv=$('#swLever');lv.setAttribute('x2',short?1060:1094);lv.setAttribute('y2',short?250:262);lv.classList.toggle('hotc',short);
+    $('#r5Short').classList.toggle('on',short);$('#r5Short').textContent=short?'⚡ Remove the short':'⚡ Short the output';
+    flow('r5Drive',I/12);flow('r5Base',short?.25:1);flow('r5Steal',short?I/12:0);flow('r5LoadN',short?0:1);flow('r5LoadS',short?1.2:0);}
+  upd();return{};
+})();
+
+/* ===========================================
+   W7: ZENER SHUNT SUPPLY FOR THE OP-AMP
+   =========================================== */
+widgets.zen=(()=>{
+  const sV=onRange('sVC',upd),sO=onRange('sIop',upd);let VZ=15;const RZ={15:820,24:200};
+  pickGroup($('#sVC').closest('.ctl').querySelector('.btns'),'z',v=>{VZ=+v;upd()});
+  function upd(){const VC=+sV.value,Io=+sO.value/1000,R=RZ[VZ];let IR=(VC-VZ)/R,IZ=IR-Io;
+    const drop=IZ<0.002;const PZ=Math.max(0,IZ)*VZ;
+    T('oVC',fx(VC,1)+' V');T('oIop',fx(Io*1000,1)+' mA');T('zVC','V_C '+fx(VC,1)+' V');T('zRZ','R_Z '+R+' Ω');T('zVZl','D_Z '+VZ+' V');
+    T('zVcc',drop?'V_CC sagging!':'V_CC = '+VZ+' V');
+    T('zIR','I_R '+fx(IR*1000,1)+' mA');T('zIZ','I_Z '+fx(Math.max(0,IZ)*1000,1)+' mA');T('zIop','I_op '+fx(Io*1000,1)+' mA');
+    T('zrIR',fx(IR*1000,1)+' mA');T('zrIZ',fx(Math.max(0,IZ)*1000,1)+' mA');T('zrPZ',fx(PZ,2)+' W');
+    const st=$('#zrSt');if(drop){st.textContent='Zener drops out';st.className='hot'}else if(PZ>1){st.textContent='P_Z > 1 W zener';st.className='hot'}else{st.textContent='Regulating';st.className='ok'}
+    $('#zD').classList.toggle('hotc',PZ>1);
+    const can=VZ-1.5;$('#zDrive').innerHTML=`Op-amp can swing to ≈ <b>${fx(can,1)} V</b>; Q1's base needs ≈ <b>16.1 V</b> → `+(can>=16.1?'<span class="ok">can drive 15 V out</span>':'<span class="hot">can\'t reach 15 V out</span>');
+    flow('zfR',IR/.02);flow('zfZ',Math.max(0,IZ)/.02);flow('zfO',Io/.006);}
+  upd();return{};
+})();
+
+/* ===========================================
+   W8: LM317 ADJUSTABLE REGULATOR
+   =========================================== */
+widgets.lm317=(()=>{
+  const s1=onRange('sR1',upd),s2=onRange('sR2',upd),sv=onRange('sVin',upd);const RL=15;
+  function upd(){const R1=+s1.value,R2=+s2.value,Vin=+sv.value;const Va=1.25*(1+R2/R1),Vb=Va+50e-6*R2;
+    const drop=Vin-Vb<3;const V0=drop?Math.max(0,Vin-3):Vb;const I=V0/RL;const P=(Vin-V0)*I;
+    T('oR1',R1+' Ω');T('oR2',R2+' Ω');T('oVin',fx(Vin,1)+' V');T('lmR1','R1 '+R1+' Ω');T('lmR2','R2 '+R2+' Ω');
+    T('lmI','I = 1.25/R1 = '+fx(1.25/R1*1000,2)+' mA');T('lmVin','V_in '+fx(Vin,1)+' V');T('lmV0','V₀ = '+fx(V0,2)+' V');
+    T('lmA',fx(Va,2)+' V');T('lmB','+'+fx(Vb-Va,3)+' V');
+    const h=$('#lmH');h.textContent=fx(Vin-V0,1)+' V';h.className=drop?'hot':'ok';T('lmP',fx(P,1)+' W');
+    T('lmDrop',drop?'DROPOUT: V_in − V₀ < 3 V':'');$('#lmBox').classList.toggle('hotc',drop);
+    $('#lmMsg').innerHTML=drop?`<span class="hot">Set point ${fx(Vb,2)} V can't be held.</span> The output follows V_in − 3 V.`:`R_L = 15 Ω draws <b>${fx(I,2)} A</b>. ${P>15?'<span class="hot">That much heat needs a big heat sink.</span>':'A heat sink is still needed.'}`;
+    flow('lmFr',1.25/R1/.005);flow('lmFl',I);}
+  upd();return{};
+})();
+
+/* ===========================================
+   W9: LM723 BLOCK MAPPING
+   =========================================== */
+widgets.lm723=(()=>{
+  const svg=$('#l7Svg');
+  const info={ref:['Reference','<b>Discrete:</b> R3 + zener + pot R4. <b>LM723:</b> internal temperature-compensated zener plus amplifier, brought out on the V_REF pin (≈7.15 V).'],
+    ea:['Error amplifier','<b>Discrete:</b> the op-amp. <b>LM723:</b> built in, with NI (+) and INV (−) inputs on pins so you can wire the reference and feedback.'],
+    pass:['Series pass','<b>Discrete:</b> Q1 driven through R5. <b>LM723:</b> internal pass transistor (V_C = collector, V_OUT = emitter), good for about 150 mA. Add a boost transistor for more.'],
+    lim:['Current limiter','<b>Discrete:</b> Q2. <b>LM723:</b> internal limit transistor whose base–emitter is brought out to CL and CS.'],
+    rs:['Sense resistor R_S','<b>Discrete:</b> R_S (+ R_A/R_B for foldback). <b>LM723:</b> you add it externally between CL and CS, so you choose the limit current, and foldback too if you want it.'],
+    div:['Output divider','<b>Discrete:</b> R1/R2 → aV₀. <b>LM723:</b> also external, so you set V₀ with your own resistors.']};
+  [...$$('rect[data-k]',svg)].forEach(r=>{const h=el('rect',{class:'hit',x:r.getAttribute('x'),y:r.getAttribute('y'),width:r.getAttribute('width'),height:r.getAttribute('height'),rx:8,'data-k':r.dataset.k},svg);
+    h.addEventListener('click',()=>{const k=h.dataset.k;$$('[data-k]',svg).forEach(e=>{if(!e.classList.contains('hit'))e.classList.toggle('hl',e.dataset.k===k)});
+      $('#l7Card').innerHTML=`<h4>${info[k][0]}</h4>${info[k][1]}`})});
+  let boost=false;$('#boostBtn').addEventListener('click',()=>{boost=!boost;$('#boostG').style.display=boost?'':'none';$('#boostBtn').classList.toggle('on',boost);T('boostBtn',boost?'− Remove boost transistor':'+ Add boost transistor')});
+  return{};
+})();
+
+/* ===========================================
+   W10: 78xx HEADROOM. Ripple simulation drawn on the scope.
+   =========================================== */
+widgets.s78=(()=>{
+  const sW=onRange('sWr',upd),sM=onRange('sMn',upd),sL=onRange('sLd',upd);let V0=5,C=2200e-6;
+  pickGroup($('#sParts'),'v',v=>{V0=+v;upd()});pickGroup($('#sCaps'),'c',v=>{C=v*1e-6;upd()});
+  const X=t=>60+(t-20)/40*1010, grid=$('#scGrid');
+  function upd(){const Vr=+sW.value,m=+sM.value/100,I=+sL.value;
+    const Vp=Math.SQRT2*Vr*(1+m)-1.4;const ymax=Math.max(10,Math.ceil((Vp+3)/5)*5);const Y=v=>530-Math.max(0,v)/ymax*262;
+    // simulate: capacitor follows |sin| when charging, discharges at I/C otherwise
+    let v=Vp,pts=[],dt=.05;for(let t=0;t<=60;t+=dt){const rect=Vp*Math.abs(Math.sin(2*Math.PI*50*t/1000));v=Math.max(rect,v-I/C*dt/1000);if(t>=20)pts.push([t,v])}
+    const head=V0+3;let dVC='',dVO='',shade='',run=[],vmin=1e9,sum=0;
+    pts.forEach(([t,vc],i)=>{const x=X(t);dVC+=(i?'L':'M')+fx(x,1)+' '+fx(Y(vc),1);const vo=vc>=head?V0:Math.max(0,vc-3);dVO+=(i?'L':'M')+fx(x,1)+' '+fx(Y(vo),1);
+      vmin=Math.min(vmin,vc);sum+=vc;
+      if(vc<head)run.push([x,Y(vc)]);if((vc>=head||i===pts.length-1)&&run.length){shade+='M'+run[0][0]+' '+Y(head)+run.map(p=>'L'+fx(p[0],1)+' '+fx(p[1],1)).join('')+'L'+run[run.length-1][0]+' '+Y(head)+'Z';run=[]}});
+    $('#scVC').setAttribute('d',dVC);$('#scVO').setAttribute('d',dVO);$('#scShade').setAttribute('d',shade);$('#scHead').setAttribute('d',`M60 ${Y(head)} H1070`);
+    grid.innerHTML='';const stp=ymax>20?10:5;for(let g=0;g<=ymax;g+=stp){el('line',{x1:60,x2:1070,y1:Y(g),y2:Y(g),stroke:'#1c3b30','stroke-width':1.5},grid);el('text',{x:48,y:Y(g)+6,class:'s','text-anchor':'end'},grid,g)}
+    const avg=sum/pts.length,dV=I/(2*50*C),ok=vmin>=head;
+    T('oW',fx(Vr,1)+' V rms');T('oM',(m>0?'+':'')+Math.round(m*100)+' %');T('oL',fx(I,2)+' A');T('sW',fx(Vr,1)+' V rms');T('sCl','C '+Math.round(C*1e6)+' µF');
+    T('sPart','78'+String(V0).padStart(2,'0'));T('sV0l','V₀ '+V0+' V');T('sIl',fx(I,2)+' A');T('scHl','- - V₀ + 3 V = '+head+' V');
+    const mn=$('#sMin');mn.textContent=fx(vmin,1)+' V';mn.className=ok?'ok':'hot';T('sDV',fx(dV,2)+' V');T('sPr',fx(Math.max(0,(avg-V0))*I,1)+' W');
+    $('#sSt').innerHTML=ok?`<span class="ok">Regulating:</span> ${fx(vmin-V0,1)} V of headroom at the valley.`:`<span class="hot">Dropout:</span> V_C dips below ${head} V, so the output sags.`;
+    $('#sBox').classList.toggle('hotc',!ok);flow('sFl',I);}
+  upd();return{};
+})();
+
+/* ===========================================
+   W11: LINE + LOAD REGULATION BENCH
+   =========================================== */
+widgets.bench=(()=>{
+  const cfg={disc:{n:'DISCRETE',Vn:15,Vr:24,C:4700e-6,lim:'fold'},lm:{n:'LM317',Vn:15,Vr:18,C:4700e-6,lim:1.5},s78:{n:'7805',Vn:5,Vr:9,C:2200e-6,lim:1.5}};
+  let reg='disc',rd=[];const sV=onRange('sVar',upd),sR=onRange('sR0',upd);
+  const R0of=i=>+(Math.pow(10,i/100*Math.log10(200))).toFixed(1); // 1 Ω … 200 Ω, log
+  function model(r,mains,R0){const c=cfg[r];const Vp=Math.SQRT2*c.Vr*mains/230-1.4,Vpn=Math.SQRT2*c.Vr-1.4;let V0=c.Vn,I=0,dV=0;
+    for(let k=0;k<40;k++){I=V0/R0;dV=I/(2*50*c.C);let set=c.Vn*(1+.0006*(Vp-Vpn))-.012*I*c.Vn/15;
+      if(Vp-dV-3<set)set=Math.max(0,Vp-dV-3);
+      let v=set,i=v/R0;
+      if(c.lim==='fold'&&i>1.2){i=.4/Math.max(.05,1-.8*R0/15);if(R0>=12.5)i=v/R0;v=Math.min(set,i*R0)}
+      else if(c.lim!=='fold'&&i>c.lim){i=c.lim;v=i*R0}
+      V0=V0*.5+v*.5;}
+    I=V0/R0;dV=I/(2*50*c.C);return{Vi:Vp-dV/2,V0,I}}
+  function axes(g,w,h,xmax,ymax,xl,yl,xstep,ystep){g.innerHTML='';
+    el('rect',{x:0,y:0,width:w,height:h,fill:'#06140f',stroke:'#2f5a4a','stroke-width':2,rx:6},g);
+    for(let x=0;x<=xmax+1e-9;x+=xstep){const px=36+x/xmax*(w-50);el('line',{x1:px,x2:px,y1:16,y2:h-36,stroke:'#1c3b30'},g);el('text',{x:px,y:h-14,class:'s','text-anchor':'middle'},g,+x.toFixed(1))}
+    for(let y=0;y<=ymax+1e-9;y+=ystep){const py=h-36-y/ymax*(h-52);el('line',{x1:36,x2:w-14,y1:py,y2:py,stroke:'#1c3b30'},g);el('text',{x:30,y:py+5,class:'s','text-anchor':'end'},g,y)}
+    el('text',{x:w-14,y:h-40,class:'s','text-anchor':'end',style:'fill:#ffc48f'},g,xl);el('text',{x:42,y:32,class:'s',style:'fill:#7fd3ff'},g,yl);
+    return (x,y)=>[36+Math.min(x,xmax)/xmax*(w-50),h-36-Math.max(0,Math.min(y,ymax))/ymax*(h-52)]}
+  function upd(){const c=cfg[reg],m=+sV.value,R0=R0of(+sR.value),s=model(reg,m,R0);
+    T('oVar',m+' V');T('oR0',R0+' Ω');T('bVar','variac '+m+' V');T('bReg',c.n);T('bVi',fx(s.Vi,1)+' V');T('bA',fx(s.I,2)+' A');T('bR','R₀ '+R0+' Ω');T('bV0',fx(s.V0,2)+' V');
+    flow('bFl',s.I);
+    const ym=c.Vn<10?8:20,ys=c.Vn<10?2:5;
+    const P1=axes($('#pLine'),370,270,50,ym,'V_i (V) →','V₀ (V)',10,ys),P2=axes($('#pLoad'),370,270,2,ym,'I₀ (A) →','V₀ (V)',.5,ys);
+    rd.forEach(p=>{let [x,y]=P1(p.Vi,p.V0);el('circle',{cx:x,cy:y,r:6,fill:'#ffc48f'},$('#pLine'));[x,y]=P2(p.I,p.V0);el('circle',{cx:x,cy:y,r:6,fill:'#ffc48f'},$('#pLoad'))});
+    let [x,y]=P1(s.Vi,s.V0);el('circle',{cx:x,cy:y,r:9,fill:'none',stroke:'#7fd3ff','stroke-width':3},$('#pLine'));
+    [x,y]=P2(s.I,s.V0);el('circle',{cx:x,cy:y,r:9,fill:'none',stroke:'#7fd3ff','stroke-width':3},$('#pLoad'));
+    const tb=$('#pTab');tb.innerHTML='';el('rect',{x:0,y:0,width:250,height:270,fill:'#06140f',stroke:'#2f5a4a','stroke-width':2,rx:6},tb);
+    el('text',{x:14,y:30,class:'s',style:'fill:#ffc48f'},tb,'  V_i     I₀     V₀');
+    rd.slice(-8).forEach((p,i)=>el('text',{x:14,y:60+i*26,style:'font-size:17px'},tb,`${fx(p.Vi,1).padStart(5)}  ${fx(p.I,2)}  ${fx(p.V0,2)}`));
+    if(!rd.length)el('text',{x:14,y:70,class:'s'},tb,'no readings yet');
+  }
+  function rec(m,R){const s=model(reg,m,R);rd.push(s)}
+  $('#bRec').addEventListener('click',()=>{rec(+sV.value,R0of(+sR.value));upd()});
+  $('#bClr').addEventListener('click',()=>{rd=[];upd()});
+  $('#bSwL').addEventListener('click',()=>{rd=[];[184,207,230,253,276].forEach(m=>rec(m,R0of(+sR.value)));upd()});
+  $('#bSwI').addEventListener('click',()=>{rd=[];const c=cfg[reg];[.15,.4,.7,1,1.3,1.7].forEach(i=>rec(+sV.value,c.Vn/i));upd()});
+  pickGroup($('#bRegs'),'r',v=>{reg=v;rd=[];sR.value=reg==='s78'?Math.round(100*Math.log10(5)/Math.log10(200)):51;upd()});
+  upd();return{};
+})();
+
+/* ===========================================
+   QUIZ: click to reveal right/wrong + explanation
+   =========================================== */
+$$('.q').forEach(q=>{const opts=$$('.opt',q);opts.forEach(o=>o.addEventListener('click',()=>{
+  opts.forEach(x=>{x.disabled=true;if(x.hasAttribute('data-c'))x.classList.add('right')});if(!o.hasAttribute('data-c'))o.classList.add('wrong');
+  $('.ex',q).classList.add('show');o.blur()}))});
+
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Keys are ignored while a slider/text input is focused; a focused
+   button only swallows Space/Enter, so arrows still change slides.
+   =========================================== */
+class SlidePresentation{
+ constructor(){this.slides=$$('.slide');this.current=0;this.stage=$('#deckStage');this.wheelLock=false;
+  this.scale();addEventListener('resize',()=>this.scale());this.keys();this.touch();this.wheel();
+  const h=parseInt(location.hash.slice(1),10);this.show(h>0?h-1:0)}
+ scale(){const f=Math.min(innerWidth/1920,innerHeight/1080);this.stage.style.transform=`translate(${(innerWidth-1920*f)/2}px,${(innerHeight-1080*f)/2}px) scale(${f})`}
+ blocked(e,key){const t=e.target;if(!t||!t.closest)return false;
+  if(t.isContentEditable)return true;
+  if(t.closest('input,textarea,select'))return true;
+  if(t.closest('button,a')&&(key===' '||key==='Enter'))return true;
+  return false}
+ keys(){document.addEventListener('keydown',e=>{if(this.blocked(e,e.key))return;
+  if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();this.show(this.current+1)}
+  else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();this.show(this.current-1)}
+  else if(e.key==='Home')this.show(0);else if(e.key==='End')this.show(this.slides.length-1)})}
+ touch(){let x0=null;document.addEventListener('touchstart',e=>{x0=e.target.closest('input,.hit,.lug,button')?null:e.touches[0].clientX},{passive:true});
+  document.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>50)this.show(this.current+(dx<0?1:-1));x0=null})}
+ wheel(){addEventListener('wheel',e=>{if(e.target.closest&&e.target.closest('input'))return;if(this.wheelLock||Math.abs(e.deltaY)<25)return;
+  this.wheelLock=true;setTimeout(()=>this.wheelLock=false,800);this.show(this.current+(e.deltaY>0?1:-1))},{passive:true})}
+ show(i){i=Math.max(0,Math.min(i,this.slides.length-1));this.current=i;
+  this.slides.forEach((s,k)=>{s.classList.toggle('active',k===i);s.classList.toggle('visible',k===i)});
+  $('#progress').style.width=((i+1)/this.slides.length*100)+'%';T('counter',String(i+1).padStart(2,'0')+' / '+String(this.slides.length).padStart(2,'0'))}
+}
+const deck=new SlidePresentation();
+/* After dragging a slider with the mouse, hand focus back to the deck so arrow keys change slides again */
+document.addEventListener('pointerup',e=>{if(e.target.matches&&e.target.matches('input[type=range]'))setTimeout(()=>e.target.blur(),0)});
+
+/* ===========================================
+   INLINE EDITING (E key or top-left hover). Edits auto-save to this browser;
+   Ctrl/Cmd+S downloads an edited copy of the file.
+   =========================================== */
+const editor={isActive:false,key:'lps-example-deck-edits-v2',
+ els(){return $$('[data-editable]')},
+ toggleEditMode(){this.isActive=!this.isActive;document.body.classList.toggle('editing',this.isActive);
+  this.els().forEach(e=>e.contentEditable=this.isActive?'true':'false');$('#editToggle').classList.toggle('active',this.isActive);
+  $('#editToggle').textContent=this.isActive?'✓ DONE':'✎ EDIT';if(!this.isActive)this.save()},
+ save(){try{localStorage.setItem(this.key,JSON.stringify(this.els().map(e=>e.innerHTML)))}catch(e){}},
+ load(){try{const d=JSON.parse(localStorage.getItem(this.key)||'null');if(d)this.els().forEach((e,i)=>{if(d[i]!=null)e.innerHTML=d[i]})}catch(e){}},
+ download(){const c=document.documentElement.cloneNode(true);c.querySelectorAll('[contenteditable]').forEach(e=>e.removeAttribute('contenteditable'));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['<!DOCTYPE html>\n'+c.outerHTML],{type:'text/html'}));a.download='linear-power-supply-example.html';a.click()}};
+editor.load();
+renderAllMath();
+document.addEventListener('input',e=>{if(e.target.isContentEditable)editor.save()});
+const editToggle=$('#editToggle'),hotzone=$('#editHotzone');let hideT=null;
+editToggle.addEventListener('click',()=>editor.toggleEditMode());hotzone.addEventListener('click',()=>editor.toggleEditMode());
+hotzone.addEventListener('mouseenter',()=>{clearTimeout(hideT);editToggle.classList.add('show')});
+hotzone.addEventListener('mouseleave',()=>{hideT=setTimeout(()=>{if(!editor.isActive)editToggle.classList.remove('show')},400)});
+editToggle.addEventListener('mouseenter',()=>clearTimeout(hideT));
+editToggle.addEventListener('mouseleave',()=>{hideT=setTimeout(()=>{if(!editor.isActive)editToggle.classList.remove('show')},400)});
+document.addEventListener('keydown',e=>{
+ if((e.key==='e'||e.key==='E')&&!e.target.isContentEditable&&!(e.target.closest&&e.target.closest('input,textarea'))&&!e.metaKey&&!e.ctrlKey)editor.toggleEditMode();
+ if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();editor.download()}});
+</script>
+</body>
+</html>

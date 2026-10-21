@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linear Power Supply: Protection</title>
+<!-- Fonts: Big Shoulders Display (titles), Martian Mono (instrument readouts), Instrument Sans (body) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Martian+Mono:wght@300;400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ===========================================
+   THEME: "Bench Scope"
+   Dark lab bench, amber phosphor traces, teal secondary trace.
+   Change these variables to re-theme the whole deck.
+   =========================================== */
+:root{
+  --stage-bg:#07090b;
+  --slide-bg:#111619;
+  --bg:#111619;
+  --panel:#0b0f11;
+  --line:#263034;
+  --amber:#ffb000;
+  --amber-glow:rgba(255,176,0,.45);
+  --teal:#45d6c4;
+  --red:#ff5a3c;
+  --txt:#e7e2d6;
+  --body:#c4c7bf;
+  --dim:#7d8a8f;
+  --wire:#b8c3c1;
+  --font-display:'Big Shoulders Display',sans-serif;
+  --font-mono:'Martian Mono',monospace;
+  --font-body:'Instrument Sans',sans-serif;
+  --ease-out-expo:cubic-bezier(0.16,1,0.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES (viewport-base.css, in full)
+   =========================================== */
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--stage-bg,#000)}
+.deck-viewport{position:fixed;inset:0;overflow:hidden;background:var(--stage-bg,#000)}
+.deck-stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;background:var(--slide-bg,#fff)}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;display:block;visibility:hidden;opacity:0;pointer-events:none;background:var(--slide-bg,#fff)}
+.slide.active,.slide.visible{visibility:visible;opacity:1;pointer-events:auto;z-index:1}
+img,video,canvas,svg{max-width:100%;max-height:100%}
+.deck-controls{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:1000}
+@media print{
+  html,body{width:1920px;height:auto;overflow:visible;background:#fff}
+  .deck-viewport{position:static;overflow:visible;background:#fff}
+  .deck-stage{position:static;width:auto;height:auto;transform:none!important;background:none}
+  .slide{position:relative;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:1920px;height:1080px;break-after:page;page-break-after:always}
+  .slide:last-child{break-after:auto;page-break-after:auto}
+  .deck-controls{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.2s!important}}
+
+/* ===========================================
+   SLIDE BASE + ATMOSPHERE
+   =========================================== */
+.slide{color:var(--txt);font-family:var(--font-body);
+  background:radial-gradient(ellipse at 72% 38%,#1a2226 0%,var(--bg) 62%)}
+.slide::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 2px,transparent 2px 4px)}
+
+/* Entrance reveal, staggered */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease-out-expo),transform .7s var(--ease-out-expo)}
+.slide.visible .reveal{opacity:1;transform:none}
+.slide.visible .r2{transition-delay:.08s}.slide.visible .r3{transition-delay:.16s}.slide.visible .r4{transition-delay:.24s}
+
+/* ===========================================
+   SLIDE CHROME: kicker, title, watch link, footer
+   =========================================== */
+.kicker{position:absolute;left:80px;top:58px;font:400 20px var(--font-mono);color:var(--amber);letter-spacing:.1em}
+.kicker::before{content:"";display:inline-block;width:13px;height:13px;border-radius:50%;background:var(--amber);box-shadow:0 0 12px var(--amber);margin-right:14px;vertical-align:0}
+h2.title{position:absolute;left:80px;top:92px;width:1300px;font:800 86px/0.95 var(--font-display);text-transform:uppercase;letter-spacing:.005em}
+h2.title span{color:var(--amber)}
+.watch{position:absolute;right:80px;top:56px;font:400 19px var(--font-mono);color:var(--amber);text-decoration:none;border:2px solid var(--amber);border-radius:999px;padding:12px 24px;letter-spacing:.06em;transition:background .2s,color .2s}
+.watch:hover,.watch:focus-visible{background:var(--amber);color:#111;outline:none}
+.pfoot{position:absolute;left:80px;bottom:26px;font:300 15px var(--font-mono);color:#56636a;letter-spacing:.08em}
+
+/* ===========================================
+   LEFT TEXT COLUMN
+   =========================================== */
+.col{position:absolute;left:80px;top:232px;width:650px;bottom:64px;display:flex;flex-direction:column;gap:20px}
+.col p{font-size:25px;line-height:1.45;color:var(--body)}
+.col p strong,.col li strong{color:var(--txt);font-weight:600}
+.col ul{list-style:none;display:flex;flex-direction:column;gap:12px}
+.col li{font-size:23px;line-height:1.4;color:var(--body);padding-left:28px;position:relative}
+.col li::before{content:"";position:absolute;left:0;top:13px;width:12px;height:2px;background:var(--amber)}
+.eq{font:400 23px/1.55 var(--font-mono);color:var(--txt);background:var(--panel);border-left:4px solid var(--amber);padding:16px 22px;border-radius:0 12px 12px 0}
+.eq .a{color:var(--amber)}.eq .t{color:var(--teal)}.eq small{display:block;font-size:17px;color:var(--dim);margin-top:4px}
+.note{font-size:20px!important;line-height:1.45!important;color:var(--dim)!important;border-top:1px solid var(--line);padding-top:14px}
+.note b{color:var(--teal);font-weight:500;font-family:var(--font-mono);font-size:16px;letter-spacing:.08em;margin-right:8px}
+.lbl{font:400 16px var(--font-mono);color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+
+/* ===========================================
+   RIGHT INSTRUMENT PANEL (holds circuits + scopes + controls)
+   =========================================== */
+.panel{position:absolute;left:780px;right:80px;top:214px;bottom:58px;background:var(--panel);border:2px solid var(--line);border-radius:22px;
+  box-shadow:inset 0 0 80px rgba(0,0,0,.7),0 30px 60px rgba(0,0,0,.35);padding:20px 26px;display:flex;flex-direction:column;gap:12px}
+.panel svg{display:block;width:100%}
+.row{display:flex;gap:26px;align-items:flex-end;flex-wrap:nowrap}
+.ctrl{display:flex;flex-direction:column;gap:6px}
+.ctrl label{font:400 16px var(--font-mono);color:var(--dim);letter-spacing:.06em}
+.ctrl label b{color:var(--amber);font-weight:400}
+input[type=range]{-webkit-appearance:none;appearance:none;width:290px;height:36px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;background:#2b3539;border-radius:3px}
+input[type=range]::-moz-range-track{height:6px;background:#2b3539;border-radius:3px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--amber);margin-top:-11px;box-shadow:0 0 12px var(--amber-glow)}
+input[type=range]::-moz-range-thumb{width:28px;height:28px;border:none;border-radius:50%;background:var(--amber)}
+input[type=range]:focus-visible{outline:2px dashed var(--teal);outline-offset:4px}
+.btn{font:400 17px var(--font-mono);padding:12px 20px;border:2px solid var(--amber);color:var(--amber);background:transparent;border-radius:10px;cursor:pointer;letter-spacing:.05em;min-height:50px;transition:background .2s,color .2s}
+.btn:hover{background:rgba(255,176,0,.12)}
+.btn.on{background:var(--amber);color:#111}
+.btn.teal{border-color:var(--teal);color:var(--teal)}.btn.teal.on{background:var(--teal);color:#111}
+.btn:disabled{opacity:.35;cursor:default}
+.reads{display:flex;gap:22px;flex-wrap:nowrap}
+.rd{font:400 15px var(--font-mono);color:var(--dim);letter-spacing:.05em;white-space:nowrap}
+.rd b{display:block;font:400 27px var(--font-mono);color:var(--amber);margin-top:4px;letter-spacing:0}
+.rd.t b{color:var(--teal)}.rd.bad b{color:var(--red)}
+.info{font:400 17px/1.4 var(--font-mono);color:var(--dim);min-height:24px}
+.info b{color:var(--teal);font-weight:400}
+.meter{height:16px;background:#1d2629;border-radius:8px;overflow:hidden;position:relative;width:100%}
+.meter i{position:absolute;left:0;top:0;bottom:0;background:var(--amber);border-radius:8px;transition:width .15s}
+.meter .mk{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--red)}
+
+/* ===========================================
+   SCHEMATIC STYLES (all circuits are inline SVG drawn by JS)
+   =========================================== */
+.ck .w,.ck .pt path,.ck .pt circle,.ck .pt polyline{stroke:var(--wire);stroke-width:3;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.ck .pt .fillp{fill:var(--wire);stroke:none}
+.ck .pt .body{fill:rgba(11,15,17,.9)}
+.ck .dot{fill:var(--wire)}
+.ck text{font:400 19px var(--font-mono);fill:var(--dim)}
+.ck text.nm{fill:var(--txt);font-size:21px}
+.ck text.v{fill:var(--amber);font-size:20px}
+.ck text.tv{fill:var(--teal);font-size:20px}
+.ck .pt{transition:opacity .4s}
+.ck .pt.hot path,.ck .pt.hot circle{stroke:var(--amber);filter:drop-shadow(0 0 6px var(--amber-glow))}
+.ck .pt.hot .fillp{fill:var(--amber)}
+.ck .pt.cool path{stroke:var(--teal)}
+.ck .pt.off{opacity:.25}
+.ck .part{cursor:help}
+.ck .part:hover path,.ck .part:hover circle{stroke:var(--teal)}
+.ck .flow{fill:none;stroke:var(--amber);stroke-width:5;stroke-dasharray:5 19;stroke-linecap:round;animation:flow 1s linear infinite;opacity:.95;filter:drop-shadow(0 0 5px var(--amber-glow));transition:opacity .25s}
+.ck .flow.t{stroke:var(--teal);filter:none}
+.ck .flow.hide{opacity:0}
+@keyframes flow{to{stroke-dashoffset:-24}}
+.ck .short{stroke:var(--red);stroke-width:5;fill:none}
+
+/* Scope plots */
+.sc .g{stroke:rgba(69,214,196,.12);stroke-width:1.2}
+.sc .ax{stroke:rgba(69,214,196,.38);stroke-width:2}
+.sc text{font:400 16px var(--font-mono);fill:var(--dim)}
+.sc .tr{fill:none;stroke:var(--amber);stroke-width:4;filter:drop-shadow(0 0 6px var(--amber-glow));stroke-linejoin:round}
+.sc .tr2{fill:none;stroke:var(--teal);stroke-width:3;stroke-linejoin:round}
+.sc .ghost{fill:none;stroke:#6b7a80;stroke-width:2;stroke-dasharray:6 6}
+.sc .faint{fill:none;stroke:#46545a;stroke-width:2;stroke-dasharray:3 6}
+.sc .op{fill:var(--amber);filter:drop-shadow(0 0 8px var(--amber))}
+.sc .cur{stroke:var(--txt);stroke-width:1.5;stroke-dasharray:4 4}
+.sc .ta{fill:var(--amber)}.sc .tt{fill:var(--teal)}
+
+/* ===========================================
+   TITLE SLIDE
+   =========================================== */
+.t-tag{position:absolute;left:96px;top:90px;font:400 20px var(--font-mono);color:var(--amber);letter-spacing:.1em}
+.t-tag::before{content:"";display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--amber);box-shadow:0 0 14px var(--amber);margin-right:14px;vertical-align:-1px;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
+.t-h1{position:absolute;left:92px;top:180px;width:840px;font:800 150px/0.9 var(--font-display);text-transform:uppercase}
+.t-h1 span{color:var(--amber);text-shadow:0 0 30px rgba(255,176,0,.35)}
+.t-sub{position:absolute;left:96px;top:690px;width:760px;font-size:29px;line-height:1.45;color:#b9bdb5}
+.t-links{position:absolute;left:96px;top:840px;display:flex;gap:18px}
+.t-links a{position:static}
+.t-foot{position:absolute;left:96px;bottom:64px;font:300 18px var(--font-mono);color:var(--dim);letter-spacing:.08em}
+.t-scope{position:absolute;right:90px;top:120px;width:880px;height:820px;background:var(--panel);border:2px solid var(--line);border-radius:22px;box-shadow:inset 0 0 80px rgba(0,0,0,.8),0 30px 60px rgba(0,0,0,.4);padding:40px}
+.t-scope .tr{stroke-dasharray:1400;stroke-dashoffset:1400}
+.slide.visible .t-scope .tr{animation:draw 2.2s .5s cubic-bezier(.6,0,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+/* ===========================================
+   DERIVATION STEPS (slide 6)
+   =========================================== */
+.steps{list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:st}
+.steps li{font:400 20px/1.5 var(--font-mono);color:#56636a;padding:12px 16px 12px 54px;border-radius:10px;position:relative;transition:color .3s,background .3s;cursor:pointer}
+.steps li::before{counter-increment:st;content:counter(st);position:absolute;left:14px;top:12px;width:28px;height:28px;border-radius:50%;border:2px solid currentColor;font-size:15px;line-height:24px;text-align:center}
+.steps li.done{color:var(--body)}
+.steps li.cur{color:var(--txt);background:#182024;box-shadow:inset 4px 0 0 var(--amber)}
+.steps li .a{color:var(--amber)}.steps li .t{color:var(--teal)}
+.bigeq{font:400 30px/1.4 var(--font-mono);color:var(--txt);text-align:center;padding:10px 0;min-height:92px}
+.bigeq .a{color:var(--amber)}.bigeq .t{color:var(--teal)}
+.bigeq small{display:block;font-size:17px;color:var(--dim);margin-top:6px}
+
+/* ===========================================
+   QUIZ
+   =========================================== */
+.qgrid{position:absolute;left:80px;right:80px;top:232px;bottom:70px;display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.qcard{background:var(--panel);border:2px solid var(--line);border-radius:20px;padding:30px;display:flex;flex-direction:column;gap:16px}
+.qcard h3{font:500 25px/1.38 var(--font-body);color:var(--txt);min-height:140px}
+.qcard h3 em{font:400 15px var(--font-mono);color:var(--amber);display:block;font-style:normal;letter-spacing:.1em;margin-bottom:10px}
+.opt{font:400 21px/1.35 var(--font-body);text-align:left;padding:16px 20px;border:2px solid #2b3539;background:#121a1d;color:var(--body);border-radius:12px;cursor:pointer;min-height:62px;transition:border-color .2s,background .2s}
+.opt:hover{border-color:var(--dim)}
+.opt.right{border-color:var(--teal);background:rgba(69,214,196,.12);color:var(--txt)}
+.opt.wrong{border-color:var(--red);background:rgba(255,90,60,.1)}
+.fb{font-size:20px;line-height:1.45;color:var(--body);min-height:90px;opacity:0;transition:opacity .3s}
+.fb.show{opacity:1}
+.fb b{font-family:var(--font-mono);font-weight:400;font-size:16px;letter-spacing:.1em}
+.fb b.ok{color:var(--teal)}.fb b.no{color:var(--red)}
+
+/* ===========================================
+   RECAP
+   =========================================== */
+.recap{position:absolute;left:80px;top:232px;width:960px;display:flex;flex-direction:column;gap:22px;list-style:none;counter-reset:rc}
+.recap li{display:flex;gap:26px;align-items:baseline;font-size:27px;line-height:1.4;color:var(--body);border-bottom:1px solid var(--line);padding-bottom:20px}
+.recap li::before{counter-increment:rc;content:"0" counter(rc);font:400 20px var(--font-mono);color:var(--amber);min-width:40px}
+.recap li strong{color:var(--txt);font-weight:600}
+.srcs{position:absolute;left:1120px;right:80px;top:232px;bottom:70px;background:var(--panel);border:2px solid var(--line);border-radius:22px;padding:34px;display:flex;flex-direction:column;gap:20px}
+.srcs a{color:var(--amber);text-decoration:none;font-size:22px;line-height:1.35}
+.srcs a:hover{text-decoration:underline}
+.srcs p{font-size:18px;line-height:1.45;color:var(--dim);margin-top:4px}
+
+/* ===========================================
+   DECK CHROME OUTSIDE THE STAGE: progress + counter + edit toggle
+   =========================================== */
+#progress{position:fixed;left:0;top:0;height:3px;background:var(--amber);box-shadow:0 0 10px var(--amber);z-index:1001;transition:width .3s}
+#counter{position:fixed;right:18px;bottom:14px;font:400 13px var(--font-mono);color:#56636a;z-index:1001;letter-spacing:.1em}
+.edit-hotzone{position:fixed;top:0;left:0;width:80px;height:80px;z-index:10000;cursor:pointer}
+.edit-toggle{position:fixed;top:16px;left:16px;z-index:10001;opacity:0;pointer-events:none;transition:opacity .3s;font:400 13px var(--font-mono);background:var(--amber);color:#111;border:none;border-radius:8px;padding:8px 12px;cursor:pointer}
+.edit-toggle.show,.edit-toggle.active{opacity:1;pointer-events:auto}
+body.editing [data-editable]{outline:1px dashed rgba(255,176,0,.5);outline-offset:4px}
+</style>
+</head>
+<body>
+<div id="progress"></div><div id="counter"></div>
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">✎ EDIT</button>
+
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- =========================================== SLIDE 1: TITLE =========================================== -->
+<section class="slide" data-widget="title">
+  <div class="t-tag reveal" data-editable>W1 · L1.4 · ELECTRONIC SYSTEMS</div>
+  <h1 class="t-h1 reveal r2" data-editable>Linear power supply: <span>protection</span></h1>
+  <p class="t-sub reveal r3" data-editable>Simple and foldback current limits, the switch-on surge, and the parts that tame it. Operate every circuit and read the result off the scope.</p>
+  <div class="t-links reveal r4">
+    <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE" target="_blank" rel="noopener">▶ WATCH THE LECTURE</a>
+  </div>
+  <div class="t-foot reveal r4" data-editable>IIT MADRAS · BS IN ELECTRONIC SYSTEMS · 28 MIN · ← → TO NAVIGATE</div>
+  <div class="t-scope reveal r3">
+    <svg class="sc" viewBox="0 0 800 740" id="titleScope"></svg>
+  </div>
+</section>
+
+<!-- =========================================== SLIDE 2: THE REGULATOR =========================================== -->
+<section class="slide" data-widget="reg">
+  <div class="kicker reveal">01 · STARTING POINT</div>
+  <h2 class="title reveal r2" data-editable>The regulator <span>we're protecting</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=12s" target="_blank" rel="noopener">▶ WATCH 00:12</a>
+  <div class="col reveal r3">
+    <p data-editable>From last lecture: a <strong>series-pass BJT Q1</strong> sits between the unregulated V<sub>i</sub> and the load. The error amplifier compares the fed-back <strong>aV₀</strong> with <strong>V<sub>ref</sub></strong> and drives Q1's base until they match.</p>
+    <p data-editable>The reference now comes from a <strong>zener regulator with a pot</strong> across the zener. Moving the pot's tap picks any V<sub>ref</sub> between 0 and V<sub>Z</sub>.</p>
+    <div class="eq">V₀ = <span class="a">V<sub>ref</sub></span> / a<small>a = R2/(R1+R2) = 0.5 · V<sub>Z</sub> = 6.2 V · V<sub>i</sub> = 15 V</small></div>
+    <ul>
+      <li data-editable>Drag the pot tap and watch V<sub>ref</sub>, then V₀, follow.</li>
+      <li data-editable>Hover any part of the circuit to name it.</li>
+      <li data-editable>Next question: <strong>what happens if the load is shorted?</strong></li>
+    </ul>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="ck" id="regSvg" viewBox="0 0 1060 560" style="height:540px"></svg>
+    <div class="info" id="regInfo">Hover a part of the circuit.</div>
+    <div class="row">
+      <div class="ctrl"><label>POT TAP <b id="regTapL">40%</b></label><input type="range" id="regTap" min="0" max="100" value="40" aria-label="Pot tap position"></div>
+      <div class="reads">
+        <div class="rd t">V_REF<b id="regVref">2.48 V</b></div>
+        <div class="rd">aV₀<b id="regAv">2.48 V</b></div>
+        <div class="rd">V₀<b id="regV0">4.96 V</b></div>
+        <div class="rd">V_CE (Q1)<b id="regVce">10.0 V</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 3: WHY OVERLOAD PROTECTION =========================================== -->
+<section class="slide" data-widget="none">
+  <div class="kicker reveal">02 · THE PROBLEM</div>
+  <h2 class="title reveal r2" data-editable>Why we need <span>overload protection</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=54s" target="_blank" rel="noopener">▶ WATCH 00:54</a>
+  <div class="col reveal r3">
+    <p data-editable>The regulator holds V₀ fixed whatever R₀ is. So if R₀ is pulled very low, the current <strong>I₀ = V₀ / R₀</strong> grows without limit, and all of it flows through Q1.</p>
+    <div class="eq">P<sub>Q1</sub> = V<sub>CE</sub> · I₀ = (V<sub>i</sub> − V₀) · <span class="a">I₀</span><small>V<sub>i</sub> = 15 V, V₀ = 5 V, so V<sub>CE</sub> = 10 V</small></div>
+    <p data-editable>Every extra amp costs Q1 another 10 W. In the lecturer's words, without protection "the series pass element will blow off."</p>
+    <ul>
+      <li data-editable>Slide R₀ down towards a short and watch Q1 heat up.</li>
+      <li data-editable>The red mark is Q1's assumed 15 W rating.</li>
+    </ul>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="ck" id="noneSvg" viewBox="0 0 1000 540" style="height:520px"></svg>
+    <div class="row" style="align-items:center">
+      <div class="ctrl"><label>LOAD R₀ <b id="noneRL">10 Ω</b></label><input type="range" id="noneR" min="0" max="1000" value="250" aria-label="Load resistance"></div>
+      <div class="reads">
+        <div class="rd">I₀<b id="noneI">0.50 A</b></div>
+        <div class="rd" id="nonePbox">P_Q1<b id="noneP">5.0 W</b></div>
+      </div>
+    </div>
+    <div class="meter"><i id="noneMeter" style="width:10%"></i><span class="mk" style="left:50%"></span></div>
+    <div class="info" id="noneMsg">Q1 is comfortable.</div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 4: SIMPLE CURRENT LIMIT =========================================== -->
+<section class="slide" data-widget="simple">
+  <div class="kicker reveal">03 · SIMPLE CURRENT LIMITING</div>
+  <h2 class="title reveal r2" data-editable>Sense resistor <span>+ Q2</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=131s" target="_blank" rel="noopener">▶ WATCH 02:11</a>
+  <div class="col reveal r3">
+    <p data-editable>Put a small <strong>sense resistor R<sub>S</sub></strong> in series with Q1's emitter, and connect a second transistor <strong>Q2</strong> with its base–emitter directly across it.</p>
+    <div class="eq">V<sub>BE2</sub> = (V₀ + I₀R<sub>S</sub>) − V₀ = <span class="a">I₀R<sub>S</sub></span><br>Set I<sub>OC</sub> · R<sub>S</sub> = 0.6 V<small>I<sub>OC</sub> = overload current, the most you allow</small></div>
+    <ul>
+      <li data-editable><strong>I₀ below I<sub>OC</sub>:</strong> V<sub>BE2</sub> &lt; 0.6 V, Q2 is off, nothing changes.</li>
+      <li data-editable><strong>At I<sub>OC</sub>:</strong> Q2 cuts in. Its collector current <em>diverts Q1's base drive</em> (teal path), pushing Q1 towards cut-off.</li>
+      <li data-editable>Pull harder and the current stays clamped at I<sub>OC</sub>. V₀ drops instead.</li>
+    </ul>
+    <p class="note" data-editable><b>CATCH</b>Into a short, Q1 still passes I<sub>OC</sub> with almost all of V<sub>i</sub> across it. Check P<sub>Q1</sub> at R₀ = 0.</p>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="ck" id="simSvg" viewBox="0 0 1000 540" style="height:466px"></svg>
+    <div class="row" style="gap:20px;align-items:stretch">
+      <div style="display:flex;flex-direction:column;gap:10px;width:440px">
+        <div class="ctrl"><label>LOAD R₀ <b id="simRL">10 Ω</b></label><input type="range" id="simR" min="0" max="1000" value="250" aria-label="Load resistance"></div>
+        <div class="ctrl"><label>SENSE R_S <b id="simRSL">0.50 Ω</b> → I_OC <b id="simIoc">1.20 A</b></label><input type="range" id="simRS" min="30" max="120" value="50" aria-label="Sense resistance"></div>
+        <div class="reads" style="gap:16px">
+          <div class="rd">I₀<b id="simI">0.50 A</b></div>
+          <div class="rd">V₀<b id="simV">5.00 V</b></div>
+          <div class="rd t" id="simQ2box">Q2<b id="simQ2">OFF</b></div>
+          <div class="rd" id="simPbox">P_Q1<b id="simP">4.9 W</b></div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div class="lbl">V_BE2 = I₀R_S <span id="simVbe" style="color:var(--amber)">0.25 V</span> / 0.6 V</div>
+        <div class="meter"><i id="simVbeM" style="width:30%"></i><span class="mk" style="left:85.7%"></span></div>
+        <svg class="sc" id="simPlot" viewBox="0 0 520 190" style="height:190px"></svg>
+      </div>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 5: FOLDBACK CIRCUIT =========================================== -->
+<section class="slide" data-widget="fold">
+  <div class="kicker reveal">04 · FOLDBACK CURRENT LIMITING</div>
+  <h2 class="title reveal r2" data-editable>One change: <span>a divider on Q2's base</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=311s" target="_blank" rel="noopener">▶ WATCH 05:11</a>
+  <div class="col reveal r3">
+    <p data-editable>The simple limit still pushes I<sub>OC</sub> into a short. <strong>Foldback</strong> aims lower: when the output is shorted, the current should drop <strong>below the rated current</strong>.</p>
+    <p data-editable>The only change: Q2's base is fed from a divider <strong>R<sub>A</sub>/R<sub>B</sub></strong> across the node V₀ + I₀R<sub>S</sub>. Q2's emitter stays at V₀.</p>
+    <div class="eq">V<sub>tap</sub> = <span class="a">α</span>(V₀ + I₀R<sub>S</sub>), α = R<sub>B</sub>/(R<sub>A</sub>+R<sub>B</sub>)<br>V<sub>BE2</sub> = α(V₀ + I₀R<sub>S</sub>) − V₀</div>
+    <ul>
+      <li data-editable>Toggle between the two circuits.</li>
+      <li data-editable>Short the load (R₀ → 0) in each mode and compare the current and Q1's dissipation in the table.</li>
+      <li data-editable>Both modes are set to start limiting near 1.2 A.</li>
+    </ul>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="ck" id="foldSvg" viewBox="0 0 1000 540" style="height:466px"></svg>
+    <div class="row" style="gap:22px;align-items:stretch">
+      <div style="display:flex;flex-direction:column;gap:12px;width:420px">
+        <div style="display:flex;gap:10px"><button class="btn" id="foldModeS">SIMPLE</button><button class="btn on" id="foldModeF">FOLDBACK</button></div>
+        <div class="ctrl"><label>LOAD R₀ <b id="foldRL">10 Ω</b></label><input type="range" id="foldR" min="0" max="1000" value="250" aria-label="Load resistance"></div>
+      </div>
+      <svg class="sc" id="foldTable" viewBox="0 0 560 190" style="height:190px;flex:1"></svg>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 6: DERIVATION =========================================== -->
+<section class="slide" data-widget="deriv">
+  <div class="kicker reveal">05 · STEP BY STEP</div>
+  <h2 class="title reveal r2" data-editable>Deriving the <span>foldback equation</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=451s" target="_blank" rel="noopener">▶ WATCH 07:31</a>
+  <div class="col reveal r3" style="gap:16px">
+    <ol class="steps" id="derivSteps">
+      <li>Tap voltage: <span class="a">α(V₀ + I₀R<sub>S</sub>)</span>, α = R<sub>B</sub>/(R<sub>A</sub>+R<sub>B</sub>), 0 &lt; α &lt; 1</li>
+      <li>Q2's emitter is at V₀, so<br>V<sub>BE2</sub> = α(V₀ + I₀R<sub>S</sub>) − V₀</li>
+      <li>Rearrange:<br>V<sub>BE2</sub> = αI₀R<sub>S</sub> − (1 − α)V₀</li>
+      <li>Solve for I₀:<br>I₀ = V<sub>BE2</sub>/(αR<sub>S</sub>) + <span class="t">(1 − α)V₀/(αR<sub>S</sub>)</span></li>
+      <li>Short the output: R₀ = 0, so V₀ = 0<br>I<sub>SC</sub> = <span class="a">V<sub>BE2</sub>/(αR<sub>S</sub>)</span></li>
+      <li>Substitute back:<br>I₀ = <span class="a">I<sub>SC</sub></span> + <span class="t">(1 − α)V₀/(αR<sub>S</sub>)</span></li>
+    </ol>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="ck" id="derivSvg" viewBox="0 0 1000 540" style="height:500px"></svg>
+    <div class="bigeq" id="derivEq"></div>
+    <div class="row" style="justify-content:center;align-items:center">
+      <button class="btn" id="derivPrev">◀ PREV</button>
+      <span class="lbl" id="derivN" style="min-width:120px;text-align:center">STEP 1 / 6</span>
+      <button class="btn" id="derivNext">NEXT ▶</button>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 7: V-I CURVE =========================================== -->
+<section class="slide" data-widget="vi">
+  <div class="kicker reveal">06 · THE FOLDBACK CURVE</div>
+  <h2 class="title reveal r2" data-editable>The current <span>folds back</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=629s" target="_blank" rel="noopener">▶ WATCH 10:29</a>
+  <div class="col reveal r3">
+    <p data-editable>Plot V₀ against I₀. In normal use V₀ is flat up to the <strong>knee</strong>. Ask for more and the operating point slides down a straight line, back to <strong>I<sub>SC</sub></strong> at V₀ = 0.</p>
+    <div class="eq">I<sub>knee</sub> = I<sub>SC</sub> + <span class="t">(1 − α)V₀/(αR<sub>S</sub>)</span><br>I<sub>SC</sub> = 0.6 / (αR<sub>S</sub>)<small>The teal term is positive, so I<sub>SC</sub> &lt; I<sub>knee</sub>. That's the "fold".</small></div>
+    <ul>
+      <li data-editable>Move R₀: the operating point is where the load line V = I·R₀ meets the curve.</li>
+      <li data-editable>Change α and R<sub>S</sub> to reshape the curve. Smaller α folds back harder.</li>
+      <li data-editable>Dashed teal: a simple limit with the same knee, for comparison.</li>
+    </ul>
+    <p class="note" data-editable><b>GOING FURTHER</b>Fold back too hard and some loads, such as constant-current loads at start-up, can lock the supply at low voltage (Wikipedia: Current limiting).</p>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="sc" id="viPlot" viewBox="0 0 1000 520" style="height:520px"></svg>
+    <div class="row" style="gap:20px">
+      <div class="ctrl"><label>α <b id="viAL">0.75</b></label><input type="range" id="viA" min="50" max="95" value="75" style="width:200px" aria-label="Divider ratio alpha"></div>
+      <div class="ctrl"><label>R_S <b id="viRSL">2.0 Ω</b></label><input type="range" id="viRS" min="10" max="30" value="20" style="width:200px" aria-label="Sense resistance"></div>
+      <div class="ctrl"><label>LOAD R₀ <b id="viRL">10 Ω</b></label><input type="range" id="viR" min="0" max="1000" value="250" style="width:240px" aria-label="Load resistance"></div>
+    </div>
+    <div class="reads">
+      <div class="rd">I_SC<b id="viIsc">0.40 A</b></div>
+      <div class="rd">I_KNEE<b id="viIk">1.23 A</b></div>
+      <div class="rd">I₀ / V₀<b id="viOp">0.50 A · 5.00 V</b></div>
+      <div class="rd">P_Q1 FOLD<b id="viPf">4.5 W</b></div>
+      <div class="rd t">P_Q1 SIMPLE<b id="viPs">4.5 W</b></div>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 8: FIRST-CYCLE SURGE =========================================== -->
+<section class="slide" data-widget="surge">
+  <div class="kicker reveal">07 · THE INPUT SIDE · FIRST-CYCLE SURGE</div>
+  <h2 class="title reveal r2" data-editable>Switch-on: <span>an empty C is a short</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=724s" target="_blank" rel="noopener">▶ WATCH 12:04</a>
+  <div class="col reveal r3">
+    <p data-editable>Now the bridge + capacitor front end. At switch-on the capacitor is empty, so it sees a <strong>voltage step</strong>: dV/dt is huge and C behaves like a short.</p>
+    <p data-editable>The first cycle must deliver the whole ½CV₁² of energy. After that, each cycle only tops up what the load used.</p>
+    <div class="eq">I<sub>SM</sub> ≈ <span class="a">v<sub>G</sub>(switch-on)</span> / (2r<sub>D</sub> + R<sub>w</sub>)<small>Only two diodes and the winding resistance limit it (0.5 Ω here)</small></div>
+    <ul>
+      <li data-editable>Switch-on happens at a <strong>random point</strong> of the sine. Near the peak is the worst case.</li>
+      <li data-editable>Ignore this <strong>non-repetitive surge I<sub>SM</sub></strong> and the diodes or the capacitor can blow in the first half-cycle.</li>
+    </ul>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="ck" id="surgeSvg" viewBox="0 0 1060 370" style="height:330px"></svg>
+    <svg class="sc" id="surgePlot" viewBox="0 0 1060 260" style="height:252px"></svg>
+    <div class="row" style="align-items:center;gap:20px">
+      <div class="ctrl"><label>SWITCH-ON ANGLE <b id="surgeAL">90°</b></label><input type="range" id="surgeA" min="0" max="180" value="90" style="width:250px" aria-label="Switch-on angle"></div>
+      <button class="btn" id="surgeGo">⚡ SWITCH ON</button>
+      <div class="reads">
+        <div class="rd bad">FIRST PEAK I_SM<b id="surgePk">40 A</b></div>
+        <div class="rd t">STEADY PEAK<b id="surgeSs">— A</b></div>
+        <div class="rd">RATIO<b id="surgeRt">—</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 9: LEAKAGE INDUCTANCE =========================================== -->
+<section class="slide" data-widget="leak">
+  <div class="kicker reveal">08 · SURGE LIMITING · TRANSFORMER</div>
+  <h2 class="title reveal r2" data-editable>Leakage inductance <span>helps</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=1239s" target="_blank" rel="noopener">▶ WATCH 20:39</a>
+  <div class="col reveal r3">
+    <p data-editable>A real transformer isn't ideal. Its equivalent circuit is a <strong>T network</strong>: primary leakage <strong>L<sub>σP</sub></strong> and secondary leakage <strong>L<sub>σS</sub></strong> in series, with the mutual inductance <strong>M</strong> and core-loss <strong>R<sub>C</sub></strong> in shunt.</p>
+    <p data-editable>M and R<sub>C</sub> are large, so the surge ignores them. It flows <strong>through both leakage inductances</strong>, which act as an impedance in its path.</p>
+    <div class="eq">Z = jω(L<sub>σP</sub> + L<sub>σS</sub>) + R<small>X<sub>L</sub> = 2π·50·L<sub>σ</sub>. The current also can't jump instantly.</small></div>
+    <p data-editable>That's why transformer-fed supplies often need no extra protection. The lecturer still advises adding some, to be safe.</p>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="ck" id="leakSvg" viewBox="0 0 1060 370" style="height:330px"></svg>
+    <svg class="sc" id="leakPlot" viewBox="0 0 1060 260" style="height:252px"></svg>
+    <div class="row" style="align-items:center;gap:20px">
+      <div class="ctrl"><label>L_σP + L_σS <b id="leakLL">1.0 mH</b></label><input type="range" id="leakL" min="0" max="30" value="10" style="width:280px" aria-label="Total leakage inductance"></div>
+      <div class="reads">
+        <div class="rd">X_L<b id="leakX">0.31 Ω</b></div>
+        <div class="rd bad">I_SM WITH L<b id="leakPk">— A</b></div>
+        <div class="rd t">IDEAL (L = 0)<b id="leakP0">40 A</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION · SWITCH-ON AT 90° (WORST CASE)</div>
+</section>
+
+<!-- =========================================== SLIDE 10: NTC THERMISTOR =========================================== -->
+<section class="slide" data-widget="ntc">
+  <div class="kicker reveal">09 · SURGE LIMITING · NTC THERMISTOR</div>
+  <h2 class="title reveal r2" data-editable>Hot when needed, <span>cool when not</span></h2>
+  <a class="watch" href="https://www.youtube.com/watch?v=9ZB3mkm9LeE&t=1377s" target="_blank" rel="noopener">▶ WATCH 22:57</a>
+  <div class="col reveal r3" style="gap:16px">
+    <p data-editable>Add a <strong>negative temperature coefficient (NTC) thermistor</strong> in series: its resistance <em>falls</em> as it heats up.</p>
+    <ul>
+      <li data-editable><strong>Cold at switch-on:</strong> high R limits the first-cycle surge.</li>
+      <li data-editable><strong>Running:</strong> I<sub>rms</sub>²R heats it, R drops, and the steady-state loss becomes small.</li>
+      <li data-editable>The lecturer's sketch: 10 Ω cold, about 5 Ω hot.</li>
+    </ul>
+    <div class="eq" style="font-size:19px">Datasheet shown in the lecture:<br>R<sub>25°C</sub> = 22 Ω ±20 % · I<sub>max</sub> = 1 A<br>R at 1 A ≈ 0.95 Ω · τ = 30 s · δ = 11 mW/°C<small>Model: R(T) = 22·e^(B(1/T − 1/298 K)), B ≈ 4000 K (assumed; reproduces 0.95 Ω at 1 A)</small></div>
+    <p class="note" data-editable><b>GOING FURTHER</b>A hot NTC gives little protection if the supply is switched off and straight back on: it needs time to cool (Wikipedia: Current limiting).</p>
+  </div>
+  <div class="panel reveal r4">
+    <svg class="ck" id="ntcSvg" viewBox="0 0 1060 330" style="height:290px"></svg>
+    <svg class="sc" id="ntcPlot" viewBox="0 0 1060 270" style="height:262px"></svg>
+    <div class="row" style="align-items:center;gap:18px">
+      <div class="ctrl"><label>TIME AFTER SWITCH-ON <b id="ntcTL">0 s</b></label><input type="range" id="ntcT" min="0" max="300" value="0" style="width:250px" aria-label="Time after switch-on"></div>
+      <button class="btn" id="ntcPlay">▶ PLAY</button>
+      <div class="ctrl"><label>STEADY I_RMS <b id="ntcIL">1.0 A</b></label><input type="range" id="ntcI" min="20" max="100" value="100" style="width:200px" aria-label="Steady-state RMS current"></div>
+    </div>
+    <div class="reads">
+      <div class="rd t">T (TEAL TRACE)<b id="ntcTemp">25 °C</b></div>
+      <div class="rd">R_NTC (AMBER)<b id="ntcR">22 Ω</b></div>
+      <div class="rd">LOSS<b id="ntcP">22 W</b></div>
+      <div class="rd t">FIXED 22 Ω LOSS<b id="ntcFix">22 W</b></div>
+      <div class="rd bad">INRUSH IF SWITCHED ON NOW<b id="ntcPk">14 A</b></div>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION · MAINS-DIRECT CASE, V₁ = 325 V</div>
+</section>
+
+<!-- =========================================== SLIDE 11: QUIZ 1 =========================================== -->
+<section class="slide" data-widget="quiz">
+  <div class="kicker reveal">CHECK YOUR UNDERSTANDING · 1 / 2</div>
+  <h2 class="title reveal r2" data-editable>Current <span>limits</span></h2>
+  <div class="qgrid reveal r3">
+    <div class="qcard" data-q>
+      <h3><em>Q1 · SIMPLE LIMIT</em>R<sub>S</sub> = 0.3 Ω. Roughly where does the current clamp?</h3>
+      <button class="opt" data-a="0" data-fb="I<sub>OC</sub> = 0.6 V / R<sub>S</sub>, not R<sub>S</sub> in amps.">0.3 A</button>
+      <button class="opt" data-a="1" data-fb="I<sub>OC</sub> = 0.6 V / 0.3 Ω = 2 A. That's when V<sub>BE2</sub> reaches the cut-in voltage.">2 A</button>
+      <button class="opt" data-a="0" data-fb="That would need V<sub>BE2</sub> = 1.8 V. Q2 turns on at about 0.6 V.">6 A</button>
+      <div class="fb"></div>
+    </div>
+    <div class="qcard" data-q>
+      <h3><em>Q2 · SHORT CIRCUIT</em>The output is shorted. Which circuit delivers less current?</h3>
+      <button class="opt" data-a="0" data-fb="The simple limit still delivers I<sub>OC</sub> into the short.">Simple limit</button>
+      <button class="opt" data-a="1" data-fb="Foldback gives I<sub>SC</sub> = V<sub>BE</sub>/(αR<sub>S</sub>), which is below the rated (knee) current.">Foldback</button>
+      <button class="opt" data-a="0" data-fb="They differ: foldback's limit falls with V₀, and at a short V₀ = 0.">The same</button>
+      <div class="fb"></div>
+    </div>
+    <div class="qcard" data-q>
+      <h3><em>Q3 · PREDICT</em>In foldback, what makes the knee current larger than I<sub>SC</sub>?</h3>
+      <button class="opt" data-a="1" data-fb="Right. (1 − α)V₀/(αR<sub>S</sub>) is positive while V₀ &gt; 0 and vanishes when V₀ = 0.">The term (1 − α)V₀/(αR<sub>S</sub>)</button>
+      <button class="opt" data-a="0" data-fb="V<sub>BE</sub>/R<sub>S</sub> is the simple-limit current. Foldback divides by αR<sub>S</sub>.">V<sub>BE</sub>/R<sub>S</sub></button>
+      <button class="opt" data-a="0" data-fb="V<sub>i</sub>/R₀ doesn't appear in the limit equation.">V<sub>i</sub>/R₀</button>
+      <div class="fb"></div>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 12: QUIZ 2 =========================================== -->
+<section class="slide" data-widget="quiz">
+  <div class="kicker reveal">CHECK YOUR UNDERSTANDING · 2 / 2</div>
+  <h2 class="title reveal r2" data-editable>Surge <span>limiting</span></h2>
+  <div class="qgrid reveal r3">
+    <div class="qcard" data-q>
+      <h3><em>Q4 · SWITCH-ON</em>When is the first-cycle surge worst?</h3>
+      <button class="opt" data-a="0" data-fb="At the zero crossing the voltage ramps up gently and the capacitor follows it.">Switch-on at the zero crossing</button>
+      <button class="opt" data-a="1" data-fb="Yes. The empty C sees almost V₁ at once, and has the shortest window to charge.">Switch-on near the peak</button>
+      <button class="opt" data-a="0" data-fb="Try the angle slider on slide 8: the peak changes a lot with the switch-on angle.">It's always the same</button>
+      <div class="fb"></div>
+    </div>
+    <div class="qcard" data-q>
+      <h3><em>Q5 · NTC</em>Why an NTC thermistor rather than a fixed 22 Ω resistor?</h3>
+      <button class="opt" data-a="0" data-fb="Cost isn't the reason given. It's about how R changes with temperature.">It's cheaper</button>
+      <button class="opt" data-a="1" data-fb="Right. High R when cold stops the surge; low R when hot cuts the steady-state loss (≈0.9 W instead of 22 W at 1 A).">High R cold, low R hot</button>
+      <button class="opt" data-a="0" data-fb="Ripple filtering is the capacitor's job.">It filters ripple</button>
+      <div class="fb"></div>
+    </div>
+    <div class="qcard" data-q>
+      <h3><em>Q6 · TRANSFORMER</em>Why do transformer-fed supplies often need no extra surge protection?</h3>
+      <button class="opt" data-a="0" data-fb="The magnetising inductance M is in shunt, so the surge bypasses it.">The large mutual inductance M</button>
+      <button class="opt" data-a="1" data-fb="Yes. L<sub>σP</sub> + L<sub>σS</sub> sit in series with the surge path and limit it.">Leakage inductance in the surge path</button>
+      <button class="opt" data-a="0" data-fb="Core loss R<sub>C</sub> is a large shunt resistance, not a series limit.">Core loss R<sub>C</sub></button>
+      <div class="fb"></div>
+    </div>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+<!-- =========================================== SLIDE 13: RECAP + SOURCES =========================================== -->
+<section class="slide" data-widget="none2">
+  <div class="kicker reveal">RECAP</div>
+  <h2 class="title reveal r2" data-editable>What to <span>take away</span></h2>
+  <ol class="recap reveal r3">
+    <li data-editable><span><strong>Protect Q1.</strong> A short makes I₀ huge, and P<sub>Q1</sub> = V<sub>CE</sub>·I₀ destroys it.</span></li>
+    <li data-editable><span><strong>Simple limit:</strong> V<sub>BE2</sub> = I₀R<sub>S</sub>, so the current clamps at I<sub>OC</sub> = 0.6 V / R<sub>S</sub>.</span></li>
+    <li data-editable><span><strong>Foldback:</strong> a divider on Q2's base gives I₀ = I<sub>SC</sub> + (1 − α)V₀/(αR<sub>S</sub>). Into a short only I<sub>SC</sub> flows.</span></li>
+    <li data-editable><span><strong>First-cycle surge:</strong> an empty C draws a non-repetitive I<sub>SM</sub>, worst when switched on near the AC peak.</span></li>
+    <li data-editable><span><strong>Tame it</strong> with leakage inductance and a cold NTC thermistor, whose resistance falls as it warms.</span></li>
+  </ol>
+  <div class="srcs reveal r4">
+    <div class="lbl">SOURCES</div>
+    <div><a href="https://www.youtube.com/watch?v=9ZB3mkm9LeE" target="_blank" rel="noopener">▶ W1_L1.4: Linear power supply. IIT Madras, BS in Electronic Systems</a><p>The lecture itself: all circuits, derivations and datasheet values.</p></div>
+    <div><a href="https://en.wikipedia.org/wiki/Current_limiting" target="_blank" rel="noopener">Wikipedia: Current limiting</a><p>Confirms the 0.65 V / R<sub>sense</sub> limit, foldback's purpose and lock-up caveat, and NTC inrush limiting.</p></div>
+    <div><a href="https://ti.com/document-viewer/lit/html/SBVA097/GUID-BB1741F4-005F-4D8F-A92C-DE8F32051042" target="_blank" rel="noopener">Texas Instruments SBVA097: LDO foldback current limit</a><p>Real-world foldback: 720 mA limit folding back to 350 mA short-circuit current.</p></div>
+    <p>Circuit values (15 V input, 5 V output, 0.5 Ω surge path, NTC B-constant) are illustrative choices consistent with the lecture.</p>
+  </div>
+  <div class="pfoot">LINEAR POWER SUPPLY · PROTECTION</div>
+</section>
+
+</main>
+</div>
+
+<script>
+/* ===========================================
+   SMALL HELPERS
+   =========================================== */
+const $=s=>document.querySelector(s);
+const f=(x,d=2)=>(Math.abs(x)>=100?x.toFixed(0):x.toFixed(d));
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+// Load slider (0..1000) → R₀ from 50 Ω down to 0 Ω (log, last 3% is a dead short)
+const sliderToR=v=>{const t=1-v/1000;return t<0.03?0:0.1*Math.pow(500,(t-0.03)/0.97)};
+const rLabel=R=>R===0?'0 Ω (SHORT)':(R<1?R.toFixed(2):R<10?R.toFixed(1):R.toFixed(0))+' Ω';
+// Flow animation speed: more current → faster dashes
+function setFlow(el,I,ref=1){if(!el)return;if(I<0.02*ref){el.classList.add('hide');return}
+  el.classList.remove('hide');el.style.animationDuration=clamp(1.1/Math.sqrt(I/ref),0.12,3)+'s'}
+
+/* ===========================================
+   SCHEMATIC PRIMITIVES
+   Every circuit is built from these. Two-terminal parts are drawn along
+   the line (x1,y1)→(x2,y2) with a 60–80 px body centred on it.
+   kinds: R resistor, L inductor, C capacitor, D diode (anode→cathode),
+          Z zener, T thermistor, W plain wire
+   =========================================== */
+function two(x1,y1,x2,y2,k,o={}){
+  const L=Math.hypot(x2-x1,y2-y1),a=Math.atan2(y2-y1,x2-x1)*180/Math.PI,m=L/2;let d,extra='';
+  switch(k){
+    case'R':d=`M0 0H${m-30}l5 -12 10 24 10 -24 10 24 10 -24 10 24 5 -12H${L}`;break;
+    case'L':d=`M0 0H${m-40}a10 10 0 0 1 20 0a10 10 0 0 1 20 0a10 10 0 0 1 20 0a10 10 0 0 1 20 0H${L}`;break;
+    case'C':d=`M0 0H${m-8}M${m-8} -26V26M${m+8} -26V26M${m+8} 0H${L}`;break;
+    case'D':d=`M0 0H${m-14}M${m+14} -16V16M${m+14} 0H${L}`;extra=`<path class="fillp" d="M${m-14} -16L${m+14} 0L${m-14} 16Z"/>`;break;
+    case'Z':d=`M0 0H${m-14}M${m+14} -16V16l7 6M${m+14} -16l-7 -6M${m+14} 0H${L}`;extra=`<path class="fillp" d="M${m-14} -16L${m+14} 0L${m-14} 16Z"/>`;break;
+    case'T':d=`M0 0H${m-34}M${m-34} -14h68v28h-68zM${m+34} 0H${L}M${m-44} 26L${m+34} -26h16`;break;
+    default:d=`M0 0H${L}`;
+  }
+  return `<g ${o.id?`id="${o.id}"`:''} class="pt ${o.cls||''}" ${o.info?`data-info="${o.info}"`:''} transform="translate(${x1} ${y1}) rotate(${a})"><path d="${d}"/>${extra}</g>`;
+}
+// NPN transistor. Local pins: B(-40,0) C(14,-40) E(14,40). rot rotates, mir mirrors left-right.
+function npn(x,y,rot,mir,o={}){
+  return `<g ${o.id?`id="${o.id}"`:''} class="pt ${o.cls||''}" ${o.info?`data-info="${o.info}"`:''} transform="translate(${x} ${y}) rotate(${rot}) scale(${mir?-1:1} 1)"><circle class="body" r="30"/><path d="M-40 0H-12M-12 -18V18M-12 -8L14 -26V-40M-12 8L14 26V40"/><path class="fillp" d="M10 23L-3.3 21.1L3.6 11.3Z"/></g>`;
+}
+const W=(pts,cls='w',id='')=>`<polyline ${id?`id="${id}"`:''} class="${cls}" points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+const FLOW=(pts,id,cls='')=>`<polyline id="${id}" class="flow ${cls}" points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+const DOT=(x,y)=>`<circle class="dot" cx="${x}" cy="${y}" r="6"/>`;
+const GND=(x,y)=>`<path class="w" d="M${x} ${y}v12M${x-18} ${y+12}h36M${x-11} ${y+19}h22M${x-4} ${y+26}h8"/>`;
+const TXT=(x,y,t,c='',anchor='start',id='')=>`<text ${id?`id="${id}"`:''} class="${c}" x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`;
+const TERM=(x,y)=>`<circle cx="${x}" cy="${y}" r="7" fill="none" stroke="var(--wire)" stroke-width="3"/>`;
+const ACSRC=(x,y,o={})=>`<g class="pt ${o.cls||''}" ${o.id?`id="${o.id}"`:''} ${o.info?`data-info="${o.info}"`:''}><circle cx="${x}" cy="${y}" r="34"/><path d="M${x-18} ${y}c6 -18 12 -18 18 0s12 18 18 0"/></g>`;
+// Variable-resistor arrow drawn across a vertical resistor centred at (x,y)
+const VARR=(x,y)=>`<path class="w" d="M${x-34} ${y+44}L${x+30} ${y-40}"/><path class="dot" d="M${x+34} ${y-46}l-4 18-12-9z"/>`;
+// Hover info for any element with data-info inside an svg
+function wireInfo(svg,out,dflt){svg.querySelectorAll('[data-info]').forEach(g=>{g.classList.add('part');
+  g.addEventListener('mouseenter',()=>out.innerHTML=g.dataset.info);g.addEventListener('mouseleave',()=>out.innerHTML=dflt)})}
+
+/* ===========================================
+   SCOPE / PLOT HELPER
+   Returns X(), Y() mappers and draws a graticule.
+   =========================================== */
+function mkScope(box,xr,yr,nx,ny){
+  const [l,t,w,h]=box,X=v=>l+(v-xr[0])/(xr[1]-xr[0])*w,Y=v=>t+h-(v-yr[0])/(yr[1]-yr[0])*h;let g='';
+  for(let i=0;i<=nx;i++)g+=`<line class="${i==0?'ax':'g'}" x1="${l+i*w/nx}" y1="${t}" x2="${l+i*w/nx}" y2="${t+h}"/>`;
+  for(let j=0;j<=ny;j++)g+=`<line class="${j==ny?'ax':'g'}" x1="${l}" y1="${t+j*h/ny}" x2="${l+w}" y2="${t+j*h/ny}"/>`;
+  return {X,Y,g};
+}
+const pathOf=(pts,X,Y)=>pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join('');
+
+/* ===========================================
+   SHARED LIMITER CIRCUIT (slides 3–6)
+   mode: 'none' (no protection), 'simple' (R_S + Q2), 'fold' (+ R_A/R_B divider)
+   Layout: Vᵢ → Q1 → node A → R_S → node B (V₀) → R₀ → ground.
+   Q2 (mirrored) sits below R_S; its collector steals Q1's base drive.
+   =========================================== */
+function drawLimiter(svg,p,mode){
+  let s='';
+  const info={Q1:'<b>Q1</b> series-pass BJT: drops V<sub>i</sub> − V₀ and carries all of I₀.',
+    RS:'<b>R<sub>S</sub></b> sense resistor: I₀ flowing through it makes V = I₀R<sub>S</sub>.',
+    Q2:'<b>Q2</b> limiter: turns on when its V<sub>BE</sub> reaches ≈ 0.6 V and steals Q1\'s base drive.',
+    R0:'<b>R₀</b> the load. Drag the slider to lower it.',
+    RA:'<b>R<sub>A</sub></b> top of the foldback divider.',RB:'<b>R<sub>B</sub></b> bottom of the divider; α = R<sub>B</sub>/(R<sub>A</sub>+R<sub>B</sub>).',
+    amp:'<b>Error amplifier</b> (with V<sub>ref</sub> and the feedback divider) drives Q1\'s base.'};
+  s+=TERM(40,80)+W([[47,80],[200,80]]);
+  s+=npn(240,94,-90,false,{id:p+'Q1',info:info.Q1});
+  if(mode==='none'){s+=W([[280,80],[900,80]])}
+  else{s+=W([[280,80],[440,80]])+two(440,80,620,80,'R',{id:p+'RS',info:info.RS})+W([[620,80],[900,80]])+DOT(420,80)+DOT(660,80)}
+  s+=two(900,80,900,380,'R',{id:p+'R0',info:info.R0})+VARR(900,230)+GND(900,380);
+  // base line + error amp
+  s+=W([[240,134],[240,470]])+`<g class="pt" id="${p}amp" data-info="${info.amp}"><path d="M240 470L196 532H284Z"/></g>`+TXT(300,520,'error amp');
+  if(mode!=='none'){
+    s+=npn(340,240,0,true,{id:p+'Q2',info:info.Q2});
+    s+=W([[326,200],[326,170],[240,170]])+DOT(240,170);       // Q2 collector → Q1 base
+    s+=W([[380,240],[420,240]]);                               // Q2 base → tap
+    s+=W([[326,280],[326,440],[660,440],[660,80]]);            // Q2 emitter → V₀
+    if(mode==='simple')s+=W([[420,240],[420,80]],'w',p+'tapw');
+    else s+=two(420,80,420,240,'R',{id:p+'RA',info:info.RA})+two(420,240,420,380,'R',{id:p+'RB',info:info.RB})+GND(420,380)+DOT(420,240);
+    s+=TXT(530,48,'R<tspan font-size="15">S</tspan>','nm','middle')+TXT(255,252,'Q2','nm')+TXT(375,48,'V₀+I₀R<tspan font-size="15">S</tspan>','','middle');
+    if(mode==='fold')s+=TXT(445,165,'R<tspan font-size="15">A</tspan>','nm')+TXT(445,320,'R<tspan font-size="15">B</tspan>','nm')+TXT(445,262,'α(V₀+I₀R<tspan font-size="15">S</tspan>)','tv',"start",p+'tapT');
+  }
+  s+=TXT(40,55,'V<tspan font-size="15">i</tspan> = 15 V','nm')+TXT(232,40,'Q1','nm','middle')+TXT(940,225,'R₀','nm')+TXT(700,55,'V₀','nm')
+   +TXT(855,300,'','v','end',p+'Ilab')+TXT(740,55,'','v','start',p+'Vlab');
+  // current flow overlays
+  s+=FLOW([[40,80],[200,80],[280,80],[900,80],[900,380]],p+'fMain');
+  s+=FLOW([[240,466],[240,134]],p+'fBase','t');
+  if(mode!=='none')s+=FLOW([[240,466],[240,170],[326,170],[326,440],[660,440],[660,80]],p+'fDiv','t');
+  svg.innerHTML=s;
+}
+// Operating point of each limiter at load R (Vi = 15 V, regulated V₀ = 5 V, V_BE(on) = 0.6 V)
+const VI=15,VO=5,VBE=0.6;
+function opSimple(R,RS){const Ioc=VBE/RS,Ireq=R>0?VO/R:Infinity;
+  if(Ireq<=Ioc)return{I:Ireq,V:VO,lim:false,RS};return{I:Ioc,V:Ioc*R,lim:true,RS}}
+function opFold(R,a,RS){const Isc=VBE/(a*RS),k=(1-a)/(a*RS),Ik=Isc+k*VO,Ireq=R>0?VO/R:Infinity;
+  if(Ireq<=Ik)return{I:Ireq,V:VO,lim:false,Isc,Ik,RS};const I=Isc/(1-k*R);return{I,V:I*R,lim:true,Isc,Ik,RS}}
+const pQ1=o=>Math.max(0,(VI-o.V-o.I*(o.RS||0)))*o.I;
+function q1Heat(svg,p,P,rating=15){const c=svg.querySelector('#'+p+'Q1 .body');if(!c)return;const h=clamp(P/rating,0,1.5);
+  c.style.fill=h<1?`rgba(255,${Math.round(176-120*h)},0,${0.08+0.5*h})`:'rgba(255,60,40,.85)'}
+
+/* ===========================================
+   WIDGET REGISTRY: each slide's data-widget maps to {init, show, hide}
+   =========================================== */
+const widgets={};
+
+/* ---------- Title scope: foldback curve hero ---------- */
+widgets.title={init(){const svg=$('#titleScope'),sc=mkScope([60,60,680,600],[0,2],[0,8],10,8);
+  const Ik=1.233,Isc=0.4,yv=5;
+  svg.innerHTML=sc.g+`<path class="tr2" style="stroke-dasharray:10 10;opacity:.8" d="${pathOf([[0,yv],[Ik,yv],[Ik,0]],sc.X,sc.Y)}"/>`
+   +`<path class="tr" d="${pathOf([[0,yv],[Ik,yv],[Isc,0]],sc.X,sc.Y)}"/>`
+   +`<text class="ta" x="${sc.X(0.45)}" y="${sc.Y(5)-16}">FOLDBACK</text><text class="tt" x="${sc.X(Ik)+14}" y="${sc.Y(0.8)}">SIMPLE LIMIT</text>`
+   +`<text x="70" y="40">V₀ ↑  1 V/div</text><text x="60" y="710">I₀ → 0.2 A/div</text><text x="${sc.X(Isc)-20}" y="${sc.Y(0)+28}" class="ta">I_SC</text><text x="${sc.X(Ik)-30}" y="${sc.Y(5)-16}" class="ta">KNEE</text>`}};
+
+/* ---------- Slide 2: regulator with zener + pot reference ---------- */
+widgets.reg={init(){
+  const svg=$('#regSvg');let s='';
+  s+=TERM(40,80)+W([[47,80],[380,80]])+DOT(120,80);
+  s+=two(120,80,120,250,'R',{info:'<b>R<sub>Z</sub></b> zener series resistor (sized last lecture).'})+W([[120,250],[120,260]])+DOT(120,260);
+  s+=two(120,430,120,260,'Z',{id:'rZ',info:'<b>Zener D<sub>Z</sub></b> holds 6.2 V across itself: the stable reference.'});
+  s+=W([[120,260],[220,260],[220,280]])+two(220,280,220,430,'R',{id:'rPot',info:'<b>Pot</b> across the zener. Its tap picks V<sub>ref</sub> = tap × V<sub>Z</sub>.'})+W([[120,430],[220,430]])+GND(170,430);
+  s+=`<g id="rWiper"><path class="w" d="M300 0H236"/><path class="dot" d="M234 0l14 -8v16z"/></g>`+W([[300,0],[300,470],[390,470],[390,390]],'w','rWireRef');
+  s+=npn(420,94,-90,false,{info:'<b>Q1</b> series-pass BJT. V<sub>CE</sub> absorbs V<sub>i</sub> − V₀.'});
+  s+=W([[420,134],[420,300]])+`<g class="pt" data-info="<b>Error amplifier K</b> (op-amp): drives Q1's base so that aV₀ = V<sub>ref</sub>."><path d="M420 300L356 390H484Z"/></g>`;
+  s+=TXT(384,382,'+','nm','middle')+TXT(456,382,'−','nm','middle')+TXT(500,345,'K','nm');
+  s+=W([[460,80],[1000,80]])+DOT(700,80)+DOT(900,80);
+  s+=two(700,80,700,260,'R',{info:'<b>R1</b> top of the feedback divider.'})+two(700,260,700,440,'R',{info:'<b>R2</b> bottom of the divider: a = R2/(R1+R2) = 0.5.'})+GND(700,440)+DOT(700,260);
+  s+=W([[700,260],[560,260],[560,500],[450,500],[450,390]]);
+  s+=two(900,80,900,440,'R',{info:'<b>R₀</b> the load.'})+GND(900,440)+TERM(1007,80);
+  s+=TXT(40,55,'V<tspan font-size="15">i</tspan> = 15 V','nm')+TXT(60,170,'R<tspan font-size="15">Z</tspan>','nm')+TXT(40,350,'6.2 V','tv')+TXT(250,300,'pot','nm')
+   +TXT(412,40,'Q1','nm','middle')+TXT(725,175,'R1','nm')+TXT(725,355,'R2','nm')+TXT(575,250,'aV₀','')+TXT(925,265,'R₀','nm')
+   +TXT(306,520,'','tv','start','rRefT')+TXT(580,290,'','v','start','rAvT')+TXT(960,55,'','v','end','rV0T');
+  s+=FLOW([[40,80],[380,80],[460,80],[900,80],[900,440]],'rFlow');
+  svg.innerHTML=s;wireInfo(svg,$('#regInfo'),'Hover a part of the circuit.');
+  $('#regTap').addEventListener('input',()=>this.update());this.update()},
+ update(){const t=$('#regTap').value/100,Vref=6.2*t,V0=Math.min(2*Vref,VI-2),y=430-15-t*120;
+  $('#rWiper').setAttribute('transform',`translate(0 ${y})`);
+  const ref=$('#rWireRef');ref.setAttribute('points',`300,${y} 300,470 390,470 390,390`);
+  $('#regTapL').textContent=Math.round(t*100)+'%';$('#regVref').textContent=f(Vref)+' V';$('#regAv').textContent=f(V0/2)+' V';
+  $('#regV0').textContent=f(V0)+' V';$('#regVce').textContent=f(VI-V0,1)+' V';
+  $('#rRefT').textContent='V_ref '+f(Vref)+' V';$('#rAvT').textContent=f(V0/2)+' V';$('#rV0T').textContent='V₀ = '+f(V0)+' V';
+  setFlow($('#rFlow'),V0/10,0.5)}};
+
+/* ---------- Slide 3: no protection ---------- */
+widgets.none={init(){drawLimiter($('#noneSvg'),'n','none');$('#noneR').addEventListener('input',()=>this.update());this.update()},
+ update(){const R=sliderToR(+$('#noneR').value),I=R>0?Math.min(VO/R,50):50,P=(VI-VO)*I,svg=$('#noneSvg');
+  $('#noneRL').textContent=rLabel(R);$('#noneI').textContent=(I>=50?'≥ ':'')+f(I)+' A';$('#noneP').textContent=f(P,1)+' W';
+  $('#nonePbox').classList.toggle('bad',P>15);$('#noneMeter').style.width=clamp(P/30*100,0,100)+'%';
+  $('#noneMeter').style.background=P>15?'var(--red)':'var(--amber)';
+  $('#nIlab').textContent='I₀ = '+f(I)+' A';$('#nVlab').textContent='= 5.00 V';
+  $('#noneMsg').innerHTML=P>15?`<b style="color:var(--red)">Q1 FAILS:</b> ${f(P,0)} W is far beyond its rating. Nothing limits I₀ except Q1's own gain and the wiring.`:P>10?'Q1 is getting hot. Its 15 W limit is close.':'Q1 is comfortable.';
+  q1Heat(svg,'n',P);setFlow($('#nfMain'),I,0.5);setFlow($('#nfBase'),0.3,0.5)}};
+
+/* ---------- Slide 4: simple current limit ---------- */
+widgets.simple={init(){drawLimiter($('#simSvg'),'s','simple');
+  ['#simR','#simRS'].forEach(i=>$(i).addEventListener('input',()=>this.update()));this.update()},
+ update(){const R=sliderToR(+$('#simR').value),RS=$('#simRS').value/100,o=opSimple(R,RS),P=pQ1(o),Ioc=VBE/RS,vbe=o.I*RS;
+  $('#simRL').textContent=rLabel(R);$('#simRSL').textContent=RS.toFixed(2)+' Ω';$('#simIoc').textContent=f(Ioc)+' A';
+  $('#simI').textContent=f(o.I)+' A';$('#simV').textContent=f(o.V)+' V';$('#simQ2').textContent=o.lim?'ON':'OFF';
+  $('#simQ2box').classList.toggle('bad',o.lim);$('#simP').textContent=f(P,1)+' W';$('#simPbox').classList.toggle('bad',P>15);
+  $('#simVbe').textContent=f(vbe)+' V';$('#simVbeM').style.width=clamp(vbe/0.7*100,0,100)+'%';
+  $('#sIlab').textContent='I₀ = '+f(o.I)+' A';$('#sVlab').textContent='= '+f(o.V)+' V';
+  const q2=$('#sQ2');q2.classList.toggle('hot',o.lim);
+  setFlow($('#sfMain'),o.I,0.5);setFlow($('#sfBase'),o.lim?0:0.3,0.5);setFlow($('#sfDiv'),o.lim?0.6:0,0.5);q1Heat($('#simSvg'),'s',P);
+  // V–I mini plot
+  const sc=mkScope([60,12,440,150],[0,2.5],[0,6],10,6),Rl=R;let g=sc.g;
+  g+=`<path class="tr" d="${pathOf([[0,VO],[Math.min(Ioc,2.5),VO],[Math.min(Ioc,2.5),0]],sc.X,sc.Y)}"/>`;
+  if(Rl>0)g+=`<path class="faint" d="${pathOf([[0,0],[Math.min(2.5,6/Rl),Math.min(6,2.5*Rl)]],sc.X,sc.Y)}"/>`;
+  g+=`<circle class="op" cx="${sc.X(Math.min(o.I,2.5))}" cy="${sc.Y(o.V)}" r="9"/>`;
+  g+=`<text x="0" y="22">V₀</text><text x="0" y="${sc.Y(5)+5}">5</text><text x="${sc.X(2.5)-10}" y="186">2.5 A</text><text x="60" y="186">0</text><text x="${sc.X(Math.min(Ioc,2.5))-28}" y="186" class="ta">I_OC</text>`;
+  $('#simPlot').innerHTML=g}};
+
+/* ---------- Slide 5: simple vs foldback toggle ---------- */
+widgets.fold={mode:'fold',init(){
+  $('#foldModeS').addEventListener('click',()=>this.set('simple'));$('#foldModeF').addEventListener('click',()=>this.set('fold'));
+  $('#foldR').addEventListener('input',()=>this.update());this.set('fold')},
+ set(m){this.mode=m;drawLimiter($('#foldSvg'),'f',m);$('#foldModeS').classList.toggle('on',m==='simple');$('#foldModeF').classList.toggle('on',m==='fold');this.update()},
+ update(){const R=sliderToR(+$('#foldR').value),os=opSimple(R,0.5),of=opFold(R,0.75,2),o=this.mode==='fold'?of:os,P=pQ1(o);
+  $('#foldRL').textContent=rLabel(R);$('#fIlab').textContent='I₀ = '+f(o.I)+' A';$('#fVlab').textContent='= '+f(o.V)+' V';
+  const t=$('#ftapT');if(t)t.textContent=f(0.75*(o.V+o.I*2))+' V';
+  $('#fQ2').classList.toggle('hot',o.lim);setFlow($('#ffMain'),o.I,0.5);setFlow($('#ffBase'),o.lim?0:0.3,0.5);setFlow($('#ffDiv'),o.lim?0.6:0,0.5);q1Heat($('#foldSvg'),'f',P);
+  // comparison table drawn as SVG text grid
+  const rows=[['',' SIMPLE','FOLDBACK'],['R_S','0.5 Ω','2 Ω, α = 0.75'],['I₀ now',f(os.I)+' A',f(of.I)+' A'],['V₀ now',f(os.V)+' V',f(of.V)+' V'],['P_Q1 now',f(pQ1(os),1)+' W',f(pQ1(of),1)+' W'],['Into a short',f(VBE/0.5)+' A · '+f(pQ1(opSimple(0,0.5)),1)+' W',f(VBE/1.5)+' A · '+f(pQ1(opFold(0,0.75,2)),1)+' W']];
+  let g='';rows.forEach((r,i)=>{const y=24+i*32;g+=`<line class="g" x1="0" y1="${y+10}" x2="560" y2="${y+10}"/>`;
+    r.forEach((c,j)=>{const x=[0,200,380][j],cls=i===0?(j===1&&this.mode==='simple'||j===2&&this.mode==='fold'?'ta':''):(j===0?'':(j===1?(this.mode==='simple'?'ta':''):(this.mode==='fold'?'ta':'')));
+      g+=`<text x="${x}" y="${y}" class="${cls}">${c}</text>`})});
+  $('#foldTable').innerHTML=g}};
+
+/* ---------- Slide 6: derivation step-through ---------- */
+widgets.deriv={i:0,
+ eqs:['V<sub>tap</sub> = <span class="a">α</span>(V₀ + I₀R<sub>S</sub>)<small>the divider scales node A by α = R<sub>B</sub>/(R<sub>A</sub>+R<sub>B</sub>)</small>',
+  'V<sub>BE2</sub> = α(V₀ + I₀R<sub>S</sub>) − <span class="t">V₀</span><small>base at the tap, emitter at V₀</small>',
+  'V<sub>BE2</sub> = αI₀R<sub>S</sub> − (1 − α)V₀<small>expand and group the V₀ terms</small>',
+  'I₀ = V<sub>BE2</sub>/(αR<sub>S</sub>) + <span class="t">(1 − α)V₀/(αR<sub>S</sub>)</span><small>Q2 sits at V<sub>BE2</sub> ≈ 0.6 V while limiting</small>',
+  'R₀ = 0 ⇒ V₀ = 0 ⇒ <span class="a">I<sub>SC</sub> = V<sub>BE2</sub>/(αR<sub>S</sub>)</span><small>with α = 0.75, R<sub>S</sub> = 2 Ω: I<sub>SC</sub> = 0.4 A</small>',
+  'I₀ = <span class="a">I<sub>SC</sub></span> + <span class="t">(1 − α)V₀/(αR<sub>S</sub>)</span><small>at V₀ = 5 V: 0.4 + 0.83 = 1.23 A (the knee)</small>'],
+ hot:[['RA','RB'],['Q2'],['Q2'],['Q2','RS'],['R0'],['RS','RA','RB','Q2']],
+ init(){drawLimiter($('#derivSvg'),'d','fold');
+  $('#derivPrev').addEventListener('click',()=>this.go(this.i-1));$('#derivNext').addEventListener('click',()=>this.go(this.i+1));
+  document.querySelectorAll('#derivSteps li').forEach((li,k)=>li.addEventListener('click',()=>this.go(k)));
+  ['dfMain','dfBase','dfDiv'].forEach(id=>$('#'+id).classList.add('hide'));this.go(0)},
+ go(k){this.i=clamp(k,0,5);const svg=$('#derivSvg');
+  document.querySelectorAll('#derivSteps li').forEach((li,j)=>{li.classList.toggle('cur',j===this.i);li.classList.toggle('done',j<this.i)});
+  svg.querySelectorAll('.pt').forEach(g=>g.classList.remove('hot'));this.hot[this.i].forEach(id=>{const g=$('#d'+id);if(g)g.classList.add('hot')});
+  svg.querySelectorAll('.short,.short-t').forEach(e=>e.remove());
+  if(this.i===4)svg.insertAdjacentHTML('beforeend','<path class="short" d="M900 80H960V380H900"/><text class="short-t" x="968" y="170" style="fill:var(--red)">0 Ω</text>');
+  $('#dtapT').textContent='α(V₀+I₀R_S)';$('#dIlab').textContent='';$('#dVlab').textContent=this.i===4?'= 0 V':'';
+  $('#derivEq').innerHTML=this.eqs[this.i];$('#derivN').textContent=`STEP ${this.i+1} / 6`;
+  $('#derivPrev').disabled=this.i===0;$('#derivNext').disabled=this.i===5}};
+
+/* ---------- Slide 7: foldback V–I curve ---------- */
+widgets.vi={init(){['#viA','#viRS','#viR'].forEach(i=>$(i).addEventListener('input',()=>this.update()));this.update()},
+ update(){const a=$('#viA').value/100,RS=$('#viRS').value/10,R=sliderToR(+$('#viR').value),o=opFold(R,a,RS);
+  const xmax=Math.max(2.5,Math.ceil(o.Ik*1.25*2)/2),sc=mkScope([70,20,900,440],[0,xmax],[0,6],10,6);
+  const os=opSimple(R,VBE/o.Ik);let g=sc.g;
+  g+=`<path class="tr2" style="stroke-dasharray:10 10;opacity:.8" d="${pathOf([[0,VO],[o.Ik,VO],[o.Ik,0]],sc.X,sc.Y)}"/>`;
+  g+=`<path class="tr" d="${pathOf([[0,VO],[o.Ik,VO],[o.Isc,0]],sc.X,sc.Y)}"/>`;
+  if(R>0){const xe=Math.min(xmax,6/R);g+=`<path class="faint" d="${pathOf([[0,0],[xe,xe*R]],sc.X,sc.Y)}"/>`}
+  else g+=`<path class="faint" d="${pathOf([[0,0],[xmax,0]],sc.X,sc.Y)}"/>`;
+  g+=`<circle class="op" cx="${sc.X(o.I)}" cy="${sc.Y(o.V)}" r="11"/><circle cx="${sc.X(os.I)}" cy="${sc.Y(os.V)}" r="8" fill="none" stroke="var(--teal)" stroke-width="3"/>`;
+  for(let v=0;v<=6;v++)g+=`<text x="40" y="${sc.Y(v)+6}">${v}</text>`;
+  for(let i=0;i<=10;i+=2)g+=`<text x="${sc.X(i*xmax/10)-14}" y="490">${(i*xmax/10).toFixed(1)}</text>`;
+  g+=`<text x="70" y="14">V₀ (V)</text><text x="900" y="516" text-anchor="end">I₀ (A)</text>`
+   +`<text class="ta" x="${sc.X(o.Isc)+10}" y="${sc.Y(0)-12}">I_SC</text><text class="ta" x="${sc.X(o.Ik)-60}" y="${sc.Y(VO)-16}">KNEE</text>`
+   +(R>0?(()=>{const vl=Math.min(5.5,xmax*R*0.95);return `<text x="${sc.X(vl/R)+14}" y="${sc.Y(vl)+6}">load line R₀ = ${rLabel(R)}</text>`})():'');
+  $('#viPlot').innerHTML=g;
+  $('#viAL').textContent=a.toFixed(2);$('#viRSL').textContent=RS.toFixed(1)+' Ω';$('#viRL').textContent=rLabel(R);
+  $('#viIsc').textContent=f(o.Isc)+' A';$('#viIk').textContent=f(o.Ik)+' A';$('#viOp').textContent=f(o.I)+' A · '+f(o.V)+' V';
+  $('#viPf').textContent=f(pQ1(o),1)+' W';$('#viPs').textContent=f(pQ1(os),1)+' W'}};
+
+/* ===========================================
+   INRUSH SIMULATION (slides 8 & 9)
+   Rectified source |V₁ sin ωt| → series R (2 diodes + winding) and optional L → C ∥ R₀.
+   Diodes stop the current going negative. Explicit Euler, dt = 2 µs.
+   =========================================== */
+function inrush({V1=20,fr=50,R=0.5,L=0,C=4700e-6,R0=18,theta=90,T=0.06}){
+  const dt=2e-6,t0=theta/360/fr,N=Math.round(T/dt),bucket=100,out=[];let vc=0,i=0,mx=0,pk=0;
+  for(let n=0;n<=N;n++){const t=n*dt,s=Math.sin(2*Math.PI*fr*t),vs=Math.abs(V1*s);
+    if(t>=t0){if(L>0){i+=(vs-vc-R*i)/L*dt;if(i<0)i=0}else i=Math.max(0,(vs-vc)/R);vc+=(i-vc/R0)/C*dt}
+    if(t>=t0&&t<t0+0.01)pk=Math.max(pk,i);mx=Math.max(mx,i);
+    if(n%bucket===0){out.push([t,vs,vc,mx,s>=0?1:-1,t>=t0?1:0]);mx=0}}
+  return{pts:out,pk};
+}
+const ssCache={};
+function steadyPeak(L){const k=L.toFixed(5);if(ssCache[k]!=null)return ssCache[k];
+  const r=inrush({L,theta:0,T:0.4});const last=r.pts.filter(p=>p[0]>0.38);return ssCache[k]=Math.max(...last.map(p=>p[3]))}
+function drawSurgePlot(svg,res,cursor,ghost){
+  const imax=Math.max(10,Math.ceil(Math.max(res.pk,ghost?ghost.pk:0)/10)*10),sc=mkScope([70,14,900,190],[0,0.06],[0,22],12,4);
+  const Yi=v=>14+190-v/imax*190;let g=sc.g;
+  g+=`<path class="faint" d="${pathOf(res.pts.map(p=>[p[0],p[1]]),sc.X,sc.Y)}"/>`;
+  g+=`<path class="tr" d="${pathOf(res.pts.filter(p=>p[5]).map(p=>[p[0],p[2]]),sc.X,sc.Y)}"/>`;
+  if(ghost)g+=`<path class="ghost" d="${ghost.pts.map((p,i)=>(i?'L':'M')+sc.X(p[0]).toFixed(1)+' '+Yi(p[3]).toFixed(1)).join('')}"/>`;
+  g+=`<path class="tr2" d="${res.pts.map((p,i)=>(i?'L':'M')+sc.X(p[0]).toFixed(1)+' '+Yi(p[3]).toFixed(1)).join('')}"/>`;
+  const t0=res.pts.find(p=>p[5]);if(t0)g+=`<line class="cur" x1="${sc.X(t0[0])}" y1="14" x2="${sc.X(t0[0])}" y2="204" style="stroke:var(--red)"/><text x="${sc.X(t0[0])+(sc.X(t0[0])>250?-8:8)}" y="34" text-anchor="${sc.X(t0[0])>250?'end':'start'}" style="fill:var(--red)">switch on</text>`;
+  if(cursor!=null)g+=`<line class="cur" x1="${sc.X(cursor)}" y1="14" x2="${sc.X(cursor)}" y2="204"/>`;
+  g+=`<text x="980" y="${Yi(imax)+6}" class="tt">${imax} A</text><text x="980" y="208" class="tt">0</text>`
+   +`<text x="70" y="226">0</text><text x="${sc.X(0.02)-20}" y="226">20 ms</text><text x="${sc.X(0.04)-20}" y="226">40 ms</text><text x="${sc.X(0.06)-50}" y="226">60 ms</text><text x="0" y="208">0</text><text x="0" y="${sc.Y(20)+6}">20 V</text>`
+   +`<text x="70" y="254" class="ta">━ v_C</text><text x="200" y="254">┄ |v_G|</text><text x="350" y="254" class="tt">━ i_D (right axis)</text>${ghost?'<text x="600" y="254">┄ i_D with L = 0</text>':''}`;
+  svg.innerHTML=g;
+}
+// Bridge + capacitor circuit (slide 8). Source on the left, diamond bridge, C ∥ R₀.
+function drawBridgeCircuit(svg,p){
+  let s='';const bx=470,by=190,h=80;
+  s+=ACSRC(90,190,{info:'<b>v<sub>G</sub></b> the AC source (transformer secondary), V₁ = 20 V peak.'});
+  s+=W([[90,156],[90,50],[170,50]])+`<g id="${p}sw"><circle class="dot" cx="176" cy="50" r="6"/><circle class="dot" cx="236" cy="50" r="6"/><path class="w" id="${p}swArm" d="M176 50L232 22"/></g>`+W([[236,50],[bx,50],[bx,by-h]]);
+  s+=W([[90,224],[90,310],[bx,310],[bx,by+h]]);
+  s+=two(bx-h,by,bx,by-h,'D',{id:p+'Da'})+two(bx,by-h,bx+h,by,'D',{id:p+'Db'})+two(bx-h,by,bx,by+h,'D',{id:p+'Dc'})+two(bx,by+h,bx+h,by,'D',{id:p+'Dd'});
+  s+=DOT(bx,by-h)+DOT(bx,by+h)+DOT(bx-h,by)+DOT(bx+h,by);
+  s+=`<path class="w" d="M${bx-h} ${by}V298a12 12 0 0 1 0 24V350H820V${by}H${bx+h}"/>`;
+  s+=two(700,by,700,350,'C',{id:p+'C',info:'<b>C</b> filter capacitor, 4700 µF. Empty at switch-on.'})+two(820,by,820,350,'R',{info:'<b>R₀</b> load, 18 Ω (≈ 1 A).'})+DOT(700,by)+DOT(700,350);
+  s+=TXT(90,255,'','','middle')+TXT(206,100,'switch','','middle')+TXT(40,120,'v<tspan font-size="15">G</tspan>','nm')+TXT(730,280,'C','nm')+TXT(845,280,'R₀','nm')+TXT(600,180,'+','nm')+TXT(372,240,'−','nm')
+   +TXT(bx,by+6,'','v','middle',p+'pair')+TXT(730,180,'','v','start',p+'vc');
+  s+=FLOW([[90,156],[90,50],[bx,50],[bx,by-h],[bx+h,by],[700,by],[700,350],[bx-h,350],[bx-h,by],[bx,by+h],[bx,310],[90,310],[90,224]],p+'fPos');
+  s+=FLOW([[90,224],[90,310],[bx,310],[bx,by+h],[bx+h,by],[700,by],[700,350],[bx-h,350],[bx-h,by],[bx,by-h],[bx,50],[90,50],[90,156]],p+'fNeg');
+  svg.innerHTML=s;
+}
+function animateCircuit(p,res,tCur){
+  const pt=res.pts.reduce((a,b)=>Math.abs(b[0]-tCur)<Math.abs(a[0]-tCur)?b:a),on=pt[5],i=pt[3],pos=pt[4]>0;
+  const arm=$('#'+p+'swArm');if(arm)arm.setAttribute('d',on?'M176 50L236 50':'M176 50L232 22');
+  setFlow($('#'+p+'fPos'),on&&pos?i:0,5);setFlow($('#'+p+'fNeg'),on&&!pos?i:0,5);
+  ['Db','Dc'].forEach(d=>{const g=$('#'+p+d);if(g)g.classList.toggle('hot',on&&pos&&i>0.2)});
+  ['Da','Dd'].forEach(d=>{const g=$('#'+p+d);if(g)g.classList.toggle('hot',on&&!pos&&i>0.2)});
+  const vc=$('#'+p+'vc');if(vc)vc.textContent=on?'v_C '+f(pt[2],1)+' V':'';
+}
+
+/* ---------- Slide 8: first-cycle surge ---------- */
+widgets.surge={raf:null,init(){drawBridgeCircuit($('#surgeSvg'),'u');
+  $('#surgeA').addEventListener('input',()=>this.update());$('#surgeGo').addEventListener('click',()=>this.play());
+  $('#surgeSs').textContent=f(steadyPeak(0),1)+' A';this.update()},
+ update(){cancelAnimationFrame(this.raf);const th=+$('#surgeA').value;this.res=inrush({theta:th});
+  $('#surgeAL').textContent=th+'°';$('#surgePk').textContent=f(this.res.pk,1)+' A';
+  const ss=steadyPeak(0);$('#surgeRt').textContent='×'+f(this.res.pk/ss,1);
+  drawSurgePlot($('#surgePlot'),this.res,null);animateCircuit('u',this.res,0.059)},
+ play(){cancelAnimationFrame(this.raf);const t0=performance.now(),dur=4500;
+  const step=now=>{const k=Math.min(1,(now-t0)/dur),t=k*0.06;drawSurgePlot($('#surgePlot'),this.res,t);animateCircuit('u',this.res,t);
+    if(k<1)this.raf=requestAnimationFrame(step)};this.raf=requestAnimationFrame(step)},
+ hide(){cancelAnimationFrame(this.raf)}};
+
+/* ---------- Slide 9: transformer T-network with leakage inductance ---------- */
+widgets.leak={raf:null,init(){
+  const svg=$('#leakSvg');let s='';
+  s+=ACSRC(70,200,{info:'<b>Primary source v<sub>G</sub></b>, referred to the secondary (20 V peak).'});
+  s+=W([[70,166],[70,70],[110,70]])+two(110,70,270,70,'L',{id:'kLp',info:'<b>L<sub>σP</sub></b> primary leakage inductance: in series with the surge.'})+W([[270,70],[430,70]])+DOT(300,70)+DOT(390,70);
+  s+=two(300,70,300,330,'L',{id:'kM',cls:'off',info:'<b>M</b> magnetising (mutual) inductance: large and in shunt, so the surge ignores it.'});
+  s+=two(390,70,390,330,'R',{id:'kRc',cls:'off',info:'<b>R<sub>C</sub></b> core-loss resistance: large and in shunt.'});
+  s+=two(430,70,590,70,'L',{id:'kLs',info:'<b>L<sub>σS</sub></b> secondary leakage inductance: in series with the surge.'})+W([[590,70],[630,70]]);
+  s+=W([[70,234],[70,330],[630,330]])+DOT(300,330)+DOT(390,330);
+  s+=`<g class="pt" data-info="<b>Full bridge</b>: two diodes conduct in each half-cycle."><rect x="630" y="40" width="150" height="320" rx="10" style="fill:rgba(11,15,17,.9);stroke:var(--wire);stroke-width:3"/></g>`;
+  const bx=705,by=200,h=46;s+=two(bx-h,by,bx,by-h,'D',{cls:'mini'})+two(bx,by-h,bx+h,by,'D',{cls:'mini'})+two(bx-h,by,bx,by+h,'D',{cls:'mini'})+two(bx,by+h,bx+h,by,'D',{cls:'mini'});
+  s+=W([[630,70],[640,70]])+W([[780,70],[880,70]])+W([[780,330],[880,330]])+two(880,70,880,330,'C',{info:'<b>C</b> empty filter capacitor.'})+two(990,70,990,330,'R',{info:'<b>R₀</b> load.'})+W([[880,70],[990,70]])+W([[880,330],[990,330]]);
+  s+=TXT(190,40,'L<tspan font-size="15">σP</tspan>','nm','middle')+TXT(510,40,'L<tspan font-size="15">σS</tspan>','nm','middle')+TXT(268,215,'M','nm','end')+TXT(412,215,'R<tspan font-size="15">C</tspan>','nm')
+   +TXT(705,385,'bridge','','middle')+TXT(905,215,'C','nm')+TXT(1012,215,'R₀','nm')+TXT(20,120,'v<tspan font-size="15">G</tspan>','nm')
+   +TXT(350,365,'surge: L_σP → L_σS → bridge → C','tv','middle');
+  s+=FLOW([[70,166],[70,70],[630,70],[780,70],[880,70],[880,330],[630,330],[70,330],[70,234]],'kFlow');
+  svg.innerHTML=s;svg.querySelectorAll('.mini path').forEach(p=>p.style.strokeWidth=2);
+  $('#leakL').addEventListener('input',()=>this.update());this.ideal=inrush({theta:90,L:0});$('#leakP0').textContent=f(this.ideal.pk,1)+' A';this.update()},
+ update(){const L=$('#leakL').value/10*1e-3;this.res=inrush({theta:90,L});
+  $('#leakLL').textContent=(L*1e3).toFixed(1)+' mH';$('#leakX').textContent=f(2*Math.PI*50*L)+' Ω';$('#leakPk').textContent=f(this.res.pk,1)+' A';
+  ['kLp','kLs'].forEach(id=>$('#'+id).classList.toggle('hot',L>0));
+  drawSurgePlot($('#leakPlot'),this.res,null,L>0?this.ideal:null);
+  setFlow($('#kFlow'),this.res.pk,5)},
+ hide(){}};
+
+/* ===========================================
+   NTC THERMAL MODEL (slide 10)
+   Heat in = I²R(T); heat out = δ(T − 25 °C); thermal mass = δ·τ.
+   R(T) = 22 Ω · exp(B(1/T − 1/298 K)), B = 4000 K.
+   =========================================== */
+function ntcSim(I){const d=0.011,tau=30,Cth=d*tau,B=4000,R25=22,dt=0.02;let T=25;const out=[];
+  for(let n=0;n<=30/dt;n++){const t=n*dt,R=R25*Math.exp(B*(1/(T+273.15)-1/298.15)),P=I*I*R;
+    if(n%25===0)out.push([t,T,R,P]);T+=(P-d*(T-25))/Cth*dt}return out}
+widgets.ntc={raf:null,init(){
+  const svg=$('#ntcSvg');let s='';
+  s+=ACSRC(70,180,{info:'<b>Mains</b> connected directly (no transformer): V₁ = 325 V peak.'});
+  s+=W([[70,146],[70,60],[150,60]])+two(150,60,350,60,'T',{id:'tNtc',info:'<b>NTC thermistor</b>: high R when cold, low R when hot.'})+W([[350,60],[560,60]]);
+  s+=W([[70,214],[70,300],[560,300]]);
+  s+=`<g class="pt" data-info="<b>Full bridge</b>"><rect x="560" y="30" width="150" height="300" rx="10" style="fill:rgba(11,15,17,.9);stroke:var(--wire);stroke-width:3"/></g>`;
+  const bx=635,by=180,h=44;s+=two(bx-h,by,bx,by-h,'D',{cls:'mini'})+two(bx,by-h,bx+h,by,'D',{cls:'mini'})+two(bx-h,by,bx,by+h,'D',{cls:'mini'})+two(bx,by+h,bx+h,by,'D',{cls:'mini'});
+  s+=W([[710,60],[960,60]])+W([[710,300],[960,300]])+two(830,60,830,300,'C',{info:'<b>C</b> 220 µF filter capacitor.'})+two(960,60,960,300,'R',{info:'<b>Load</b>'})+DOT(830,60)+DOT(830,300);
+  s+=`<rect id="tGlow" x="214" y="44" width="72" height="32" rx="4" style="fill:var(--amber);opacity:0"/>`;
+  s+=TXT(250,25,'NTC','nm','middle')+TXT(250,115,'','v','middle','tRT')+TXT(115,186,'325 V','nm')+TXT(855,190,'C','nm')+TXT(985,190,'R₀','nm');
+  s+=FLOW([[70,146],[70,60],[560,60],[710,60],[830,60],[830,300],[560,300],[70,300],[70,214]],'tFlow');
+  svg.innerHTML=s;svg.querySelectorAll('.mini path').forEach(p=>p.style.strokeWidth=2);
+  $('#ntcT').addEventListener('input',()=>this.draw());$('#ntcI').addEventListener('input',()=>this.update());$('#ntcPlay').addEventListener('click',()=>this.play());
+  this.update()},
+ update(){this.I=$('#ntcI').value/100;this.sim=ntcSim(this.I);$('#ntcIL').textContent=this.I.toFixed(1)+' A';this.draw()},
+ draw(){const t=$('#ntcT').value/10,sim=this.sim,pt=sim[Math.min(sim.length-1,Math.round(t/0.5))];
+  const sc=mkScope([70,14,900,216],[0,30],[0,24],10,4),YT=v=>14+216-v/150*216;let g=sc.g;
+  g+=`<path class="tr" d="${pathOf(sim.map(p=>[p[0],p[2]]),sc.X,sc.Y)}"/><path class="tr2" d="${sim.filter(p=>p[0]<=30).map((p,i)=>(i?'L':'M')+sc.X(p[0]).toFixed(1)+' '+YT(p[1]).toFixed(1)).join('')}"/>`;
+  g+=`<line class="cur" x1="${sc.X(t)}" y1="14" x2="${sc.X(t)}" y2="230"/><circle class="op" cx="${sc.X(t)}" cy="${sc.Y(pt[2])}" r="8"/>`;
+  g+=`<text x="0" y="${sc.Y(22)+6}" class="ta">22 Ω</text><text x="0" y="234" class="ta">0 Ω</text><text x="980" y="30" class="tt">150°C</text><text x="980" y="234" class="tt">0°C</text>`;
+  for(let k=0;k<=30;k+=6)g+=`<text x="${sc.X(k)-12}" y="258">${k} s</text>`;
+  $('#ntcPlot').innerHTML=g;
+  $('#ntcTL').textContent=t.toFixed(0)+' s';$('#ntcTemp').textContent=pt[1].toFixed(0)+' °C';$('#ntcR').textContent=f(pt[2],pt[2]>=10?1:2)+' Ω';
+  $('#ntcP').textContent=f(pt[3])+' W';$('#ntcFix').textContent=f(this.I*this.I*22,1)+' W';
+  $('#ntcPk').textContent=f(325/(pt[2]+0.5),1)+' A';
+  $('#tRT').textContent=f(pt[2],pt[2]>=10?1:2)+' Ω · '+pt[1].toFixed(0)+' °C';
+  const heat=clamp((pt[1]-25)/100,0,1);$('#tGlow').style.opacity=heat*0.55;$('#tNtc').classList.toggle('hot',heat>0.3);
+  setFlow($('#tFlow'),this.I,0.5)},
+ play(){cancelAnimationFrame(this.raf);const sl=$('#ntcT'),start=+sl.value>=298?0:+sl.value,t0=performance.now();
+  const step=now=>{const v=Math.min(300,start+(now-t0)/6000*300);sl.value=v;this.draw();if(v<300)this.raf=requestAnimationFrame(step)};this.raf=requestAnimationFrame(step)},
+ hide(){cancelAnimationFrame(this.raf)}};
+
+/* ---------- Quiz slides ---------- */
+widgets.quiz={init(){if(this.done)return;this.done=true;
+  document.querySelectorAll('[data-q]').forEach(card=>{const fb=card.querySelector('.fb');
+    card.querySelectorAll('.opt').forEach(btn=>btn.addEventListener('click',()=>{
+      card.querySelectorAll('.opt').forEach(b=>b.classList.remove('right','wrong'));const ok=btn.dataset.a==='1';
+      btn.classList.add(ok?'right':'wrong');if(!ok)card.querySelector('.opt[data-a="1"]').classList.add('right');
+      fb.innerHTML=(ok?'<b class="ok">CORRECT · </b>':'<b class="no">NOT QUITE · </b>')+btn.dataset.fb;fb.classList.add('show')}))})}};
+
+// Initialise every widget once
+Object.values(widgets).forEach(w=>{try{w.init&&w.init()}catch(e){console.error(e)}});
+
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Keys: → ↓ PageDown Space next · ← ↑ PageUp prev · Home/End.
+   Keys are ignored while a slider/text input is focused; a focused
+   button only blocks Space/Enter (arrow keys still change slides).
+   =========================================== */
+class SlidePresentation{
+ constructor(){this.slides=[...document.querySelectorAll('.slide')];this.current=0;this.stage=$('#deckStage');this.wheelLock=false;
+  this.scale();addEventListener('resize',()=>this.scale());this.keys();this.touch();this.wheel();
+  const h=parseInt(location.hash.slice(1),10);this.show(h>0?h-1:0)} // #3 opens slide 3
+ scale(){const f=Math.min(innerWidth/1920,innerHeight/1080);this.stage.style.transform=`translate(${(innerWidth-1920*f)/2}px,${(innerHeight-1080*f)/2}px) scale(${f})`}
+ blocked(e,key){const t=e.target;if(!t||!t.closest)return false;
+  if(t.isContentEditable)return true;
+  if(t.closest('input,textarea,select'))return true;
+  if(t.closest('button,a')&&(key===' '||key==='Enter'))return true;
+  return false}
+ keys(){document.addEventListener('keydown',e=>{if(this.blocked(e,e.key))return;
+  if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();this.show(this.current+1)}
+  else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();this.show(this.current-1)}
+  else if(e.key==='Home')this.show(0);else if(e.key==='End')this.show(this.slides.length-1)})}
+ touch(){let x0=null;document.addEventListener('touchstart',e=>{x0=e.target.closest('input')?null:e.touches[0].clientX},{passive:true});
+  document.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>50)this.show(this.current+(dx<0?1:-1));x0=null})}
+ wheel(){addEventListener('wheel',e=>{if(e.target.closest&&e.target.closest('input'))return;if(this.wheelLock||Math.abs(e.deltaY)<25)return;
+  this.wheelLock=true;setTimeout(()=>this.wheelLock=false,800);this.show(this.current+(e.deltaY>0?1:-1))},{passive:true})}
+ show(i){i=Math.max(0,Math.min(i,this.slides.length-1));const prev=this.slides[this.current];
+  const pw=widgets[prev.dataset.widget];if(pw&&pw.hide&&prev!==this.slides[i])pw.hide();
+  this.current=i;this.slides.forEach((s,k)=>{s.classList.toggle('active',k===i);s.classList.toggle('visible',k===i)});
+  const w=widgets[this.slides[i].dataset.widget];if(w&&w.show)w.show();
+  $('#progress').style.width=((i+1)/this.slides.length*100)+'%';$('#counter').textContent=String(i+1).padStart(2,'0')+' / '+String(this.slides.length).padStart(2,'0')}
+}
+const deck=new SlidePresentation();
+
+/* ===========================================
+   INLINE EDITING (E key or top-left hover). Edits auto-save to this browser;
+   Ctrl/Cmd+S downloads an edited copy of the file.
+   =========================================== */
+const editor={isActive:false,key:'lps-deck-edits',
+ els(){return [...document.querySelectorAll('[data-editable]')]},
+ toggleEditMode(){this.isActive=!this.isActive;document.body.classList.toggle('editing',this.isActive);
+  this.els().forEach(e=>e.contentEditable=this.isActive?'true':'false');$('#editToggle').classList.toggle('active',this.isActive);
+  $('#editToggle').textContent=this.isActive?'✓ DONE':'✎ EDIT';if(!this.isActive)this.save()},
+ save(){try{localStorage.setItem(this.key,JSON.stringify(this.els().map(e=>e.innerHTML)))}catch(e){}},
+ load(){try{const d=JSON.parse(localStorage.getItem(this.key)||'null');if(d)this.els().forEach((e,i)=>{if(d[i]!=null)e.innerHTML=d[i]})}catch(e){}},
+ download(){const c=document.documentElement.cloneNode(true);c.querySelectorAll('[contenteditable]').forEach(e=>e.removeAttribute('contenteditable'));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['<!DOCTYPE html>\n'+c.outerHTML],{type:'text/html'}));a.download='linear-power-supply.html';a.click()}};
+editor.load();
+document.addEventListener('input',e=>{if(e.target.isContentEditable)editor.save()});
+const editToggle=$('#editToggle'),hotzone=$('#editHotzone');let hideT=null;
+editToggle.addEventListener('click',()=>editor.toggleEditMode());hotzone.addEventListener('click',()=>editor.toggleEditMode());
+hotzone.addEventListener('mouseenter',()=>{clearTimeout(hideT);editToggle.classList.add('show')});
+hotzone.addEventListener('mouseleave',()=>{hideT=setTimeout(()=>{if(!editor.isActive)editToggle.classList.remove('show')},400)});
+editToggle.addEventListener('mouseenter',()=>clearTimeout(hideT));
+editToggle.addEventListener('mouseleave',()=>{hideT=setTimeout(()=>{if(!editor.isActive)editToggle.classList.remove('show')},400)});
+document.addEventListener('keydown',e=>{
+ if((e.key==='e'||e.key==='E')&&!e.target.isContentEditable&&!(e.target.closest&&e.target.closest('input,textarea'))&&!e.metaKey&&!e.ctrlKey)editor.toggleEditMode();
+ if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();editor.download()}});
+</script>
+</body>
+</html>

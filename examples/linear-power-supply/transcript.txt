@@ -1,0 +1,540 @@
+[00:03] [Music]
+[00:12] Let us now incorporate
+[00:16] the reference circuit at this point.
+[00:22] So let me erase a portion there
+[00:25] and draw this Zener regulator circuit.
+[00:30] the reference which will give you the
+[00:33] reference voltage. So I'll connect a pot
+[00:36] here like this and take the tapping of
+[00:40] the pot and connect it here to provide
+[00:42] the V reference. So by adjusting the tap
+[00:46] of the pot I can get any value of V
+[00:48] reference here to match AV KN.
+[00:54] So now uh let us discuss how to
+[00:59] incorporate
+[01:01] overload protection. What happens if I
+[01:04] overload? If I reduce the value of R not
+[01:07] to a very low value
+[01:09] then a very large current can pass and
+[01:13] this could be detrimental to this entire
+[01:16] circuit and probably the series pass
+[01:18] element will blow off.
+[01:20] So it is essential that you need to
+[01:23] incorporate a overload protection
+[01:26] uh circuit.
+[01:29] So we will do that in series with the
+[01:31] series pass here. At this point we will
+[01:34] have uh sensing a sense resistor and the
+[01:39] sense resistor will will sense and the
+[01:42] drive here to this transistor will be uh
+[01:48] drained off will um will be uh drained
+[01:53] off in such a way that the transistor
+[01:56] uh will um move towards the cutff
+[02:00] region.
+[02:03] uh whenever overload occurs and thereby
+[02:06] tries to prevent the occurrence of the
+[02:08] overload. So that is the simple current
+[02:11] protection circuit. Let us first discuss
+[02:13] the simple cor current protection
+[02:14] circuit. Uh to incorporate the circuit
+[02:18] here, I need to clear up some space.
+[02:23] So let me move that down.
+[02:27] I will then make the connections.
+[02:31] Yes.
+[02:36] So now
+[02:38] here uh let me
+[02:42] draw let me cut off that portion of the
+[02:45] conductor and that's where I want to
+[02:47] insert a resistor and here I want to
+[02:50] insert a BJT.
+[02:53] I will in insert a BJT and connect it in
+[02:56] this fashion here
+[02:58] and a resistor
+[03:03] and connect it in this fashion.
+[03:06] So let me call this resistor
+[03:08] RS.
+[03:10] So the voltage here is V not because
+[03:12] it's same as V not and the voltage here
+[03:15] would be there is I not flowing through
+[03:17] this V plus I not RS. So the voltage at
+[03:22] this node is V + I RS.
+[03:29] So how does this protection circuit
+[03:31] work? It's pretty uh simple.
+[03:34] [Music]
+[03:35] Uh if the current is below a particular
+[03:38] threshold value,
+[03:41] the VBE of this transistor, let us look
+[03:44] at this VBE of this transistor. This is
+[03:46] VBE.
+[03:49] So if I name this transistor as Q1 and
+[03:52] this transistor as Q2 I can call it
+[03:54] VBE2.
+[03:56] So if I take say I take this VB2 VB2 is
+[03:59] nothing but V plus I RS minus V
+[04:05] the way it is connected. So which is
+[04:07] equal to nothing but I RS.
+[04:12] So let us write that down. VBE
+[04:16] 2 is equal to I into RS. Now if I set I
+[04:23] not
+[04:25] uh um if I set I not equal to the
+[04:28] overload current. So some value of
+[04:30] overload current beyond the rated uh and
+[04:33] I will call that one as IOC overload
+[04:36] current.
+[04:38] uh let us set I you know I OC into RS
+[04:40] as6 volt which is the VBE drop which
+[04:44] means that when the overload current
+[04:47] occurs then uh I RS will be 6 volt which
+[04:51] is directly across VBE and Q2 would have
+[04:55] cut in and it'll be uh uh drawing a
+[04:59] collector current which means it'll be
+[05:00] diverting a portion of the current away
+[05:04] from Q1 base current
+[05:07] so that way Q1 will receive.
+[05:11] Let me now discuss
+[05:14] another variant of this current
+[05:17] limiting. It is called foldback current
+[05:20] limiting. So in this kind of um
+[05:25] current limiting circuit you will see
+[05:28] that when there is a overload occurs
+[05:30] overload current into RS is VBE.
+[05:34] So the
+[05:36] uh uh Q2 uh BJT will be biased around
+[05:40] that 6 value
+[05:43] um at the overload current value and the
+[05:46] circuit will be delivering
+[05:49] uh just the overload uh current value at
+[05:53] the operating point
+[05:55] when you are trying to draw when you are
+[05:58] trying to draw more than the overload
+[06:00] value it gets limited to the overload
+[06:02] current value.
+[06:06] But in the uh case of the foldback
+[06:09] limiting that I'm going to discuss when
+[06:12] you
+[06:14] short circuit
+[06:16] the output
+[06:18] output wtage is zero we expect a very
+[06:21] large current to flow but the foldback
+[06:24] current limiting circuit will see to it
+[06:26] that the current will become lesser than
+[06:28] the rated current. So how is that done?
+[06:31] It's a small minor modification. Let me
+[06:35] do that. So I will erase here.
+[06:40] So fold back current limiting. Let me
+[06:42] write that down.
+[06:45] So I am erasing
+[06:47] this
+[06:50] and adding uh volt u resistive divider
+[06:54] circuit
+[06:56] like this. So I'm having a resistive
+[06:59] divider circuit and at the center point
+[07:02] or at the center tapping point I will
+[07:04] tap out and give it to the base of this.
+[07:07] This is the only change that I'm going
+[07:09] to do.
+[07:14] So the voltage here at this node will be
+[07:18] V + I RS
+[07:21] into the um attenuation factor of this
+[07:27] particular voltage um resistive divider
+[07:29] circuit.
+[07:31] Let me call this as RA and this is RB.
+[07:36] Then the voltage at this point is V + I
+[07:39] R S into RB by RA A + RB.
+[07:43] So let us write down what is VB2? VBE2
+[07:48] equals V + I RS that is this value this
+[07:52] node value into the attenuation factor
+[07:55] RB divided by RA + RB
+[08:01] is this voltage value minus this voltage
+[08:03] value which is V itself. So you have
+[08:07] minus v.
+[08:09] So this is the um governing equation for
+[08:13] vb2.
+[08:15] Now rb by ra + rb is a constant factor
+[08:19] uh less than one positive. Let me call
+[08:22] this one as alpha.
+[08:25] So then the equation will can be
+[08:29] visualized in a much more simpler way.
+[08:32] alpha into V + I RS minus V.
+[08:38] So I can write it as alpha I R S - 1 -
+[08:44] alpha into V. The same equation has been
+[08:48] rearranged slightly. Let me let me move
+[08:51] up.
+[08:52] Now let me try to find I not. What is
+[08:55] the relationship? I not is let me take
+[08:58] this term to the other side. I not will
+[09:02] be VB E2
+[09:04] divided by alpha RS
+[09:08] plus 1 - alpha V KN by alpha RS.
+[09:16] So here
+[09:19] if I short circuit if I make R not is
+[09:22] equal to zero then V not is equal to Z.
+[09:26] So in this equation V not will be equal
+[09:28] to zero at that time at that instant
+[09:31] operating condition the current that is
+[09:33] flowing here the I not current that is
+[09:35] flowing here will be the short circuit
+[09:37] current. So let us call that as ISC the
+[09:41] short circuit current. So uh under the
+[09:45] condition that you are short circuiting
+[09:47] the output
+[09:53] when output is short circuited V not
+[09:56] will be zero and I will call I not as is
+[10:00] C.
+[10:02] So this term will vanish. So ISC is
+[10:05] nothing but only this term VB2 divided
+[10:09] by alpha RS. So if I substitute this
+[10:13] into this equation I get a generic
+[10:16] equation I not is equal to I is C plus 1
+[10:20] - alpha V by alpha R S. Now this is the
+[10:24] equation for I kn
+[10:27] what does this imply?
+[10:29] So let me draw the IV curve on the
+[10:33] X-axis I will put I not on the Y-axis V.
+[10:36] Okay I not versus V. So normally under
+[10:42] normal condition the voltage V not will
+[10:45] be constant fixed like this. The graph
+[10:48] will go like that. This is at V not up
+[10:51] to let us say I rated.
+[10:55] So I will call that one as I not rated.
+[11:01] So I not rated
+[11:03] and this is V not constant.
+[11:06] I not rated is we know it is equal to
+[11:09] this equation
+[11:12] this equation is C
+[11:17] plus uh V not term 1 - alpha V by alpha
+[11:23] RS alpha is a positive uh quantity so
+[11:27] this is a positive term so is C plus
+[11:30] this term now when you make V not equal
+[11:33] to zero when you short circuit then I
+[11:37] not is nothing but IC. So IC has to be
+[11:39] somewhere less than this. Right? Because
+[11:41] this term has vanished. This positive
+[11:43] term has vanished. So it'll be somewhere
+[11:46] here.
+[11:49] So this would be our
+[11:51] value when V not is equal to zero. So
+[11:54] which means that in between there will
+[11:57] be points till it reaches this. So as
+[12:00] your overload let us say my over
+[12:04] there is another important protection
+[12:07] that we need to implement in this
+[12:10] circuit and that is
+[12:13] in this region of the circuit where you
+[12:16] have the full bridge diode uh and the
+[12:20] capacitor filter.
+[12:22] See what happens is that if the
+[12:25] transformer is ideal or in cases where
+[12:27] transformer is not there the source will
+[12:32] get directly connected to the capacitor
+[12:35] through this diode.
+[12:37] And when you switch on at the time of
+[12:40] switch on
+[12:42] it is a step voltage that is being
+[12:43] applied to the capacitor and the DV by
+[12:47] DT is very high and the capacitance is
+[12:50] almost a short uh for very very high
+[12:54] frequency components.
+[12:56] So therefore
+[12:58] you will see that there is a very large
+[13:01] surge current that flows through the
+[13:03] diode through the capacitor and back
+[13:05] here
+[13:07] at least at the first cycle before the
+[13:09] capacitor gets charged. Once the
+[13:11] capacitor is charged from there on you
+[13:13] will see that the uh current required to
+[13:17] replenish the charge cycle by cycle is
+[13:19] less.
+[13:20] So let me show uh to you um using the
+[13:26] waveform so that we can visualize this
+[13:28] problem and then see how we can solve
+[13:31] it.
+[13:33] So let me
+[13:37] draw
+[13:39] this is x-axis is time axis
+[13:42] and let me draw here the grid wtage. If
+[13:46] I call this as the grid voltage VG, the
+[13:49] rectified grid voltage that would have
+[13:52] occurred here if a resistance is
+[13:54] connected here. The absolute value of
+[13:57] the uh grid voltage VG is this.
+[14:04] Now
+[14:06] the current waveform
+[14:09] which flows here the ID current waveform
+[14:13] will uh be with respect to the peak and
+[14:17] we have discussed this
+[14:20] the
+[14:22] uh from the second cycle onwards you
+[14:25] will see that there is a degree of um
+[14:29] equilibrium that has achieved. So you
+[14:31] will see that the output wtage will
+[14:33] intersect at this point. The diodes will
+[14:35] conduct up to the peak and then again
+[14:38] the uh intersection output wtage
+[14:41] intersection at this point of the VG
+[14:44] waveform and then the diode will conduct
+[14:47] and so on.
+[14:49] The problem is in the first cycle.
+[14:56] So let us plot the uh current waveform.
+[15:01] So if I call this as ID. So ID can be
+[15:04] plotted here. And for we know what the
+[15:09] current wave shape is
+[15:12] for the steady state of this diode
+[15:15] bridge full bridge capacitor filter
+[15:17] circuit. It's something like this. What
+[15:20] happens at the first cycle? So cycle
+[15:26] capacitor is not charged. It is zero
+[15:28] charge. Voltage is not there. Voltage is
+[15:31] built. The entire energy uh in the
+[15:35] capacitor up to half C V1² has to be
+[15:38] built up. So the current accordingly
+[15:40] integration of the current into time
+[15:42] will be the half CV. The charge that
+[15:46] comes into uh play.
+[15:49] So you will see that there is a uh
+[15:52] current waveform which is larger than
+[15:55] what you would expect in the steady
+[15:58] state because here it is only the charge
+[16:01] the integral of this area is only the
+[16:03] charge that is um needed to replenish
+[16:08] the capacitor cycle by cycle whatever it
+[16:10] has lost to the load during the period
+[16:13] when the diodes were not conducting.
+[16:17] So if if the switch on at the time of
+[16:22] switch on of the circuit
+[16:25] if I place a switch here and switch on
+[16:29] the VG. So when the VG is switched on
+[16:34] and if it so happens that
+[16:38] the VG is starting from zero at that
+[16:42] point in time then you will see a um
+[16:47] waveform current waveform like this and
+[16:49] the diode is conducting throughout. The
+[16:51] diode is conducting throughout
+[16:53] um where the capacitor voltage is
+[16:56] following the input wtage up to this
+[16:59] point and the capacitor discharge
+[17:01] separately and the input wtage starts
+[17:02] coming down diodes are reverse biased
+[17:04] and it is turned off. So this is the
+[17:08] current waveform that you would see if
+[17:10] the capacitor um uh the capacitor
+[17:13] charges when the input wtage is switched
+[17:17] on. And it so happens that at the time
+[17:21] of switch on the input wtage starts from
+[17:24] zero. The waveform starts from zero. But
+[17:27] that is not what may happen. In practice
+[17:30] when you switch on the input wtage may
+[17:32] be at any point on this curve.
+[17:38] And uh let us say that
+[17:40] at switch on we uh the um input waveform
+[17:45] was somewhere here
+[17:47] close to the peak what would happen?
+[17:51] So let me extend the curve a bit and
+[17:56] indicate that at this point when you
+[17:59] switch on let us say the input waveform
+[18:01] wave shape is at this point isn't it at
+[18:05] the time when you are switching on it is
+[18:07] random we don't know where the input
+[18:10] wave shape is it could be anywhere from
+[18:11] zero to v_sub_1
+[18:14] so um that being the case the worst case
+[18:17] would be a value of uh uh the value of
+[18:21] the voltage which is close to V_sub_1.
+[18:24] So if let us say it is going to switch
+[18:27] at this point then we have a much
+[18:31] narrower window of time for the
+[18:35] capacitor charge to build up.
+[18:38] So if it had if the input wave wave
+[18:41] shape was here, we saw that there was
+[18:44] this current charge which
+[18:48] this highlighted yellow highlight is the
+[18:51] amount of charge that was put into the
+[18:53] capacitor here.
+[18:56] But in the same in that smaller window
+[18:59] the same amount of charge needs to be
+[19:01] put. So which means that my current
+[19:04] should be much larger to accommodate the
+[19:10] same charge that you need to put into
+[19:11] the capacitor. So you will see that the
+[19:16] current will reach a much higher peak
+[19:19] value during that time basically because
+[19:22] when when you are switching on this
+[19:24] voltage is zero and this voltage
+[19:28] is at almost close to peak. So the peak
+[19:31] voltage divided by what are the
+[19:35] resistances? The resistance is this
+[19:36] diode resistance, one more diode
+[19:38] resistance and then the winding
+[19:40] resistance. And if the transformer is
+[19:42] ideal, there's no other resistances that
+[19:44] come into the picture. So that can be a
+[19:46] very high surge peak current till the
+[19:50] capacitor charges up when the current
+[19:52] goes to zero.
+[19:55] So this
+[19:57] first cycle surge limit
+[20:01] is a cause of problem. If I call this an
+[20:05] ISM, nonrepetitive
+[20:08] peak current, non-repetitive search
+[20:11] current and this is something
+[20:15] that needs to be taken care of otherwise
+[20:18] every time you switch on the circuit
+[20:20] there is a chance that your capacitor or
+[20:23] the diodes will blow in the first half
+[20:25] cycle itself and then it'll never go to
+[20:27] the steady state. So you have to prevent
+[20:30] this first cycle uh search current.
+[20:36] So how do we do that?
+[20:39] Let me replace this transformer with a
+[20:42] practical transformer. In the practical
+[20:43] transformer, you will see that there are
+[20:45] leakage uh inductances and it is a
+[20:48] leakage inductances that come into play
+[20:51] and provide some reactance
+[20:54] uh to prevent uh surge current to flow
+[20:57] through the capacitors. during the first
+[20:59] half cycle.
+[21:01] So the leakage inductance is actually um
+[21:05] advantageous in our case here. So let us
+[21:08] put the practical part of the circuit.
+[21:12] So the equivalent circuit of a
+[21:14] transformer is a T network. So I have
+[21:17] one inductance primary side inductance
+[21:19] secondary side leakage inductance. There
+[21:21] is a mutual inductance. I will draw
+[21:23] that. And then there will also be a loss
+[21:26] component equivalent loss component. And
+[21:28] I will show it like this as a
+[21:29] resistance. So I can say that
+[21:34] the transformer consists of this leakage
+[21:37] inductance L sigma 1 uh L sigma P
+[21:41] secondary side leakage inductance L
+[21:42] sigma S the mutual inductance M and RC
+[21:46] the core loss component let us say
+[21:49] so M and RC are very large they're
+[21:52] coming in shunt. So if there is a
+[21:54] current that is going to be flowing VG
+[21:56] minus VC
+[21:59] uh it will flow through this path as my
+[22:02] arrow flows through the primary leakage
+[22:04] flows through the secondary leakage
+[22:06] diode then through the capacitors then
+[22:10] again the diode and then back again. So
+[22:12] that will be the path that the current
+[22:14] will flow. So sec primary leakage plus
+[22:18] the secondary leakage will act as an
+[22:22] impedance uh to limit this surge and
+[22:26] that is why many a times when you put
+[22:28] the transformer you don't need to have
+[22:30] additional protection this uh inductance
+[22:34] ind the leakage inductance themselves
+[22:36] will have a um limiting effect on this
+[22:41] first cycle surge
+[22:44] but I would means is that you um uh be
+[22:49] on the safer side and incorporate
+[22:52] uh another component here and that
+[22:55] component
+[22:57] I will call that as a thermister. This
+[23:00] is a thermister. You would have heard of
+[23:02] a thermister. Thermister comes as both
+[23:06] uh positive temperature coefficient
+[23:09] thermister and negative temperature
+[23:11] coefficient thermister.
+[23:13] um we would like to use a negative
+[23:16] temperature quotient thermister. What it
+[23:17] means is that as the temperature
+[23:20] increases the resistance value
+[23:22] decreases. What it mean uh how does this
+[23:26] protect?
+[23:27] So let us say cold value of the
+[23:29] thermister is at some value. Let us say
+[23:31] 10 ohms. 10 ohms is the cold value of
+[23:34] this thermister.
+[23:36] And uh uh during um during the startup
+[23:41] and let us say there is uh start uh
+[23:44] there is a finite wtage at the input at
+[23:46] the time of the startup finite step then
+[23:49] VG
+[23:51] minus this VC will be zero divided by
+[23:56] this leakage inductance reactance omega
+[23:59] L sigma P plus L sigma S will be the
+[24:03] inductive reactance.
+[24:06] that is J omega the uh J omega LP plus L
+[24:10] sigma S plus this R would be the uh uh
+[24:16] impedance that comes in series to
+[24:18] prevent and limit the surge current. So
+[24:22] if this was 10 ohms. So let us say that
+[24:24] initially it is 10 ohms and then as
+[24:27] current starts to flow the RMS current
+[24:29] IRMS² into R is the thermal loss power
+[24:34] loss that happens and the temperature
+[24:35] starts rising. As the temperature starts
+[24:38] rising
+[24:41] the resistance decreases. That is what
+[24:43] we would want to have because as time
+[24:46] progresses now it has gone into the
+[24:48] steady state. In the steady state the
+[24:50] currents are lesser.
+[24:52] And I don't want the additional loss in
+[24:55] the thermister.
+[24:57] Therefore, this negative temperature
+[24:59] coefficient helps in the steady state.
+[25:01] Once the temperature once the RMS
+[25:04] current has reached a steady state
+[25:06] value, Irma square R. We'll see that the
+[25:08] the temperature rises in the thermister
+[25:11] brings down the value of resistance.
+[25:15] There is a thermal coefficient. So, it
+[25:16] will bring down the value of the
+[25:18] resistance let's say from 10 to 5 ohms.
+[25:20] So the loss reduces during the
+[25:23] equilibrium or the steady state. So this
+[25:25] is how the thermister uh works.
+[25:28] So initially the first cycle we want a
+[25:31] high um resistance as the cold value of
+[25:34] the resistance should be high.
+[25:39] Let the resistance drop down towards
+[25:42] zero so that uh there is no loss
+[25:46] additional loss in the circuit. So this
+[25:49] way you need to do uh search current
+[25:51] limiting.
+[25:54] You can go to the
+[25:56] net Google for yourself
+[26:00] uh the data sheet of a NTC negative
+[26:03] temperature coefficient thermister. I
+[26:06] have here a typical sample NTC
+[26:08] thermister data sheet
+[26:12] for indrushkar current limiting maximum
+[26:15] current of 1 amp and our resistance at
+[26:19] 25° centigrade is 28 ohms the cold value
+[26:22] of resistance at room temperature.
+[26:25] So this is how it looks the dimension.
+[26:29] This is a ICL09
+[26:31] series thermister.
+[26:38] Look at the
+[26:40] highlights here.
+[26:43] Characteristic data are resistance at
+[26:46] 25° C 22 ohms plus or minus 20%. Maximum
+[26:50] steady state current is 1 amp.
+[26:53] approximate resistance at max current
+[26:56] that is at 1 amp. You see the drop from
+[26:59] 22 ohms it drops to 95 ohms. So
+[27:03] therefore you have a significant saving
+[27:06] in the power loss during the steady
+[27:09] state operation. Thermal time constant
+[27:11] 30 seconds
+[27:14] dissipation coefficient
+[27:16] uh 11 matt per deg centigrade so on. So
+[27:21] um looking at this look at this
+[27:23] nomograph here you have power versus uh
+[27:27] deg centigrade at 25° centigrade. So
+[27:30] this is the max power it dissipates
+[27:33] because the value of the resistance is
+[27:35] high. Irms MS² R uh will be uh large and
+[27:40] then as the temperature increases you
+[27:43] see a drop in the power a linear drop in
+[27:45] the power and
+[27:48] um by 100° centigrade uh you see that
+[27:51] the power has dropped clo uh to a very
+[27:54] low value.
